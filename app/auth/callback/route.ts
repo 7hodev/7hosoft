@@ -20,5 +20,5 @@ export async function GET(request: Request) {
   }
 
   // URL to redirect to after sign up process completes
-  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?redirect_to=/reset-password`);
+  return NextResponse.redirect(`${origin}/auth/callback`);
 }
