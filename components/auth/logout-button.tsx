@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 const LogoutButton: React.FC = () => {
 
   return (
-    <Button asChild onClick={signOutAction}>LogOut test3</Button>
+    <Button asChild onClick={signOutAction}>LogOut test4</Button>
   );
 };
 
