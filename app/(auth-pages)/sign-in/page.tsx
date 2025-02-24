@@ -31,7 +31,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
       </CardHeader>
       <CardContent>
         <form className="flex-1 flex flex-col min-w-64">
-          <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
+          <div className="flex flex-col gap-2 [&>input]:mb-3 mt-3">
             <Label htmlFor="email">Email</Label>
             <Input name="email" placeholder="you@example.com" required />
             <div className="flex justify-between items-center">
@@ -50,14 +50,16 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
               required
             />
           </div>
+          <SubmitButton pendingText="Signing In..." formAction={signInAction}>
+          Sign in
+        </SubmitButton>
         </form>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <SubmitButton pendingText="Signing In..." formAction={signInAction}>
-          Sign in
-        </SubmitButton>
         <FormMessage message={searchParams} />
       </CardFooter>
     </Card>
   );
 }
+
+

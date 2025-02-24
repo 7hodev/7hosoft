@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChart3, Building2, Clock, DollarSign, Users2, Warehouse } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useContext } from "react";
-import { LanguageContext } from "./AppWrapper";
+import { createContext, useState } from "react";
+import { SiteHeader } from "@/components/home/site-header";
+import { type Language, translations } from "@/lib/i18n/translations";
 
 export default function Home() {
-  const { language, t } = useContext(LanguageContext);
+
+  const [language, setLanguage] = useState<Language>("en");
+    const t = translations[language];
 
   return (
     <main className="flex-1">
+      <SiteHeader language={language} onLanguageChange={setLanguage} t={t} />
       {/* Hero Section */}
       <section className="relative">
         <div className="absolute inset-0 z-0">

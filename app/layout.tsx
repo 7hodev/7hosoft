@@ -1,10 +1,8 @@
-
-import { SiteHeader } from "@/components/home/site-header"
+import { SiteHeader } from "@/components/home/site-header";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { useState } from "react";
 import { type Language, translations } from "@/lib/i18n/translations";
-import AppWrapper from "./AppWrapper";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -26,5 +24,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AppWrapper>{children}</AppWrapper>;
+  return (
+    <html lang="en" className={geistSans.className} suppressHydrationWarning>
+      <body className="text-foreground flex justify-center items-center min-h-screen"> 
+        {children}
+      </body>
+    </html>
+  );
 }

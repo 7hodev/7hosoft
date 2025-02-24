@@ -43,7 +43,7 @@ export default async function Signup(props: {
         </CardHeader>
         <CardContent>
           <form className="flex flex-col min-w-64 max-w-64 mx-auto">
-            <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
+            <div className="flex flex-col gap-2 [&>input]:mb-3 mt-3">
               <Label htmlFor="display_name">Username</Label>
               <Input
                 name="display_name"
@@ -61,12 +61,12 @@ export default async function Signup(props: {
                 required
               />
             </div>
+            <SubmitButton formAction={signUpAction} pendingText="Signing up...">
+            Sign up
+          </SubmitButton>
           </form>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <SubmitButton formAction={signUpAction} pendingText="Signing up...">
-            Sign up
-          </SubmitButton>
           <FormMessage message={searchParams} />
         </CardFooter>
       </Card>
