@@ -42,7 +42,7 @@ export default async function Signup(props: {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col min-w-64 max-w-64 mx-auto">
+          <form className="flex flex-col min-w-64">
             <div className="flex flex-col gap-2 [&>input]:mb-3 mt-3">
               <Label htmlFor="display_name">Username</Label>
               <Input
