@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/sidebar";
 import * as React from "react";
 import ThemeToggle from "@/components/theme-toggle";
+import LocaleProvider from "@/components/locale-provider";
+import LanguageToggle from "@/components/language-toggle";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   // This is sample data.
@@ -29,6 +31,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
+    <LocaleProvider locale="en">
       <SidebarProvider>
         <AppSidebar />
         <main className="flex-1 w-full flex flex-col gap-12">
@@ -52,6 +55,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </Breadcrumb>
               </div>
               <div className="flex items-center gap-2 px-4">
+                <div>
+                  
+                <LanguageToggle />
+                </div>
                 <div className="">
                   <ThemeToggle />
                 </div>
@@ -62,5 +69,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </SidebarInset>
         </main>
       </SidebarProvider>
+      </LocaleProvider>
   );
 }
