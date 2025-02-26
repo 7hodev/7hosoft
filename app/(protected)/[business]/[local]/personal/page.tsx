@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 
-export default async function DashboardPage() {
+export default async function PersonalPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -15,7 +15,7 @@ const { data } = await supabase.auth.updateUser({
 
   return (
     <div>
-      <h1>HOME</h1>
+      <h1>Personal</h1>
     </div>
   );
 }

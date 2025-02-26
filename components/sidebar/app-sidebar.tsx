@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   AudioWaveform,
   BookOpen,
@@ -19,7 +18,6 @@ import {
 
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
-import { NavUser } from "@/components/sidebar/nav-user";
 import { TeamSwitcher } from "@/components/sidebar/team-switcher";
 import {
   Sidebar,
@@ -29,8 +27,7 @@ import {
   SidebarRail,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import ThemeToggle from "@/components/theme-toggle";
+import { ButtonConfig } from "@/components/config/button-config";
 
 // This is sample data.
 export const data = {
@@ -119,12 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenuButton asChild>
-          <Link href="/settings">
-            <Settings className="mr-2" />
-            <span>Configuration</span>
-          </Link>
-        </SidebarMenuButton>
+        <ButtonConfig />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

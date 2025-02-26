@@ -32,6 +32,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import * as React from "react"
+import { ButtonConfig } from "../config/button-config"
 
 export function NavUser({
   user,
@@ -103,8 +105,7 @@ export function NavUser({
                 Notifications
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Settings />
-                Configuration
+                <ButtonConfig />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
