@@ -27,14 +27,14 @@ export default function Home() {
             priority
           />
         </div>
-        <div className="relative z-10 flex min-h-[80vh] items-center justify-center text-white">
+        <div className="relative z-10 flex min-h-[80vh] items-center justify-center">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none max-w-3xl mx-auto text-black">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none max-w-3xl mx-auto">
                   {t.hero.title}
                 </h1>
-                <p className="max-w-[600px] text-gray-400 md:text-xl mx-auto">{t.hero.subtitle}</p>
+                <p className="max-w-[600px] md:text-xl mx-auto">{t.hero.subtitle}</p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Button asChild size="lg" className="w-full min-[400px]:w-auto">
@@ -46,7 +46,7 @@ export default function Home() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="w-full min-[400px]:w-auto text-black bg-white/10 hover:bg-white/20"
+                  className="w-full min-[400px]:w-auto bg-white/10 hover:bg-white/20"
                 >
                   <Link href="#demo">{t.hero.cta.demo}</Link>
                 </Button>
@@ -74,7 +74,7 @@ export default function Home() {
               { icon: <BarChart3 />, key: "analytics" },
               { icon: <Building2 />, key: "multistore" },
             ].map(({ icon, key }) => (
-              <div key={key} className="relative overflow-hidden rounded-lg border bg-card p-2 dark:bg-background/5">
+              <div key={key} className="relative overflow-hidden rounded-lg border bg-card p-2">
                 <div className="flex h-[180px] flex-col justify-between rounded-md p-6">
                   <div className="h-10 w-10 text-primary">{icon}</div>
                   <div className="space-y-2">

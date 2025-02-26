@@ -1,8 +1,7 @@
 import { SiteHeader } from "@/components/home/site-header";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { useState } from "react";
-import { type Language, translations } from "@/lib/i18n/translations";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -26,8 +25,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
-      <body className="text-foreground flex justify-center items-center min-h-screen"> 
-        {children}
+      <body className="text-foreground flex justify-center items-center min-h-screen">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

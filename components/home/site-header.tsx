@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Building2, Menu } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -13,9 +12,10 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { ThemeSwitcher2 } from "@/components/theme-switcher";
 import { LanguageSwitcher } from "./language-switcher";
-import type { Language, translations } from "@/lib/i18n/translations";
+import type { Language } from "@/lib/i18n/translations";
+import * as React from "react";
+import ThemeToggle from "../theme-toggle";
 
 interface SiteHeaderProps {
   language: Language;
@@ -75,7 +75,7 @@ export function SiteHeader({ language, onLanguageChange, t }: SiteHeaderProps) {
         </NavigationMenu>
         <div className="flex flex-1 items-center justify-end space-x-2">
           <LanguageSwitcher language={language} onChange={onLanguageChange} />
-          <ThemeSwitcher2 />
+          <ThemeToggle />
           <div className="hidden lg:flex lg:items-center lg:space-x-4">
             <Button variant="ghost" asChild>
               <Link href="/sign-in">{t.nav.signin}</Link>

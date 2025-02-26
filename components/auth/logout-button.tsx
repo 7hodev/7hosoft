@@ -1,11 +1,14 @@
 import { signOutAction } from "@/app/actions";
-import React from 'react';
+import React from "react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const LogoutButton: React.FC = () => {
-
   return (
-    <Button asChild onClick={signOutAction}>LogOut test</Button>
+    <div className="flex" onClick={signOutAction}>
+      <LogOut />
+      Log Out
+    </div>
   );
 };
 
