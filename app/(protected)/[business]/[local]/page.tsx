@@ -1,21 +1,22 @@
-import { createClient } from "@/utils/supabase/server";
+"use client";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+import { useStore } from "@/app/context/store-context"; 
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-// Ejemplo de cómo actualizar base de datos auth supabase
-/*
-const { data } = await supabase.auth.updateUser({
-  data: { display_name: "Jhonnar" } 
-  // Cambia esto por el nombre del usuario
-});
-*/
+export default function Home() {
+  const { selectedStore } = useStore();
 
   return (
-    <div>
-      <h1>HOME</h1>
+    <div className="p-8">
+      {!selectedStore ? (
+        <div className="mt-4 p-4 border rounded max-w-md">
+          <h2 className="text-xl font-bold mb-4">Crear Nueva Tienda</h2>
+        </div>
+      ) : (
+        <div className="mt-4 p-4 border rounded">
+          <h2 className="text-xl font-bold">{selectedStore.name}</h2>
+          <p>ID: {selectedStore.id}</p>
+        </div>
+      )}
     </div>
   );
 }

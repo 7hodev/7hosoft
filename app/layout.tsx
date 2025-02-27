@@ -25,6 +25,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
+      <head>
+        <link 
+          rel="preload" 
+          href="/_next/static/css/app/layout.css" 
+          as="style"
+        />
+      </head>
       <body className="text-foreground flex justify-center items-center min-h-screen">
         <ThemeProvider>{children}</ThemeProvider>
       </body>

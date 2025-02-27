@@ -18,6 +18,7 @@ import * as React from "react";
 import ThemeToggle from "@/components/theme-toggle";
 import LocaleProvider from "@/components/locale-provider";
 import LanguageToggle from "@/components/language-toggle";
+import { StoreProvider } from "@/app/context/store-context";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   // This is sample data.
@@ -31,7 +32,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LocaleProvider locale="en">
+    <StoreProvider>
       <SidebarProvider>
         <AppSidebar />
         <main className="flex-1 w-full flex flex-col gap-12">
@@ -56,8 +57,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex items-center gap-2 px-4">
                 <div>
-                  
-                <LanguageToggle />
                 </div>
                 <div className="">
                   <ThemeToggle />
@@ -65,10 +64,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <NavUser user={data.user} />
               </div>
             </header>
-            <div className="flex flex-1 flex-col gap-4 p-5">{children}</div>
+            <div className="flex flex-1 flex-col gap-4 p-5">
+              {children}
+            </div>
           </SidebarInset>
         </main>
       </SidebarProvider>
-      </LocaleProvider>
+      </StoreProvider>
   );
 }
