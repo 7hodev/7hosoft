@@ -18,11 +18,12 @@ export function AddStoreDialog() {
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const { refreshStores } = useStore()
+  const { refreshStores, setSelectedStore } = useStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
     
     try {
       const supabase = createClient()
@@ -30,15 +31,18 @@ export function AddStoreDialog() {
 
       if (!user) throw new Error("Usuario no autenticado")
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("stores")
         .insert([{ name, user_id: user.id }])
+        .select()
+        .single()
 
       if (error) throw error
       
       await refreshStores()
-      setOpen(false)
-      setName("")
+      setSelectedStore(data) // Selecciona la nueva tienda
+      setOpen(false) // Cierra el diálogo
+      setName("") // Limpia el campo
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear tienda")
     } finally {
@@ -47,7 +51,13 @@ export function AddStoreDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen)
+      if (!isOpen) {
+        setName("")
+        setError("")
+      }
+    }}>
       <DialogTrigger asChild>
         <Button variant="ghost" className="w-full justify-start">
           Nueva tienda
@@ -65,6 +75,7 @@ export function AddStoreDialog() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre de la tienda"
             required
+            disabled={loading}
           />
           
           <div className="flex justify-end gap-2">
@@ -72,6 +83,7 @@ export function AddStoreDialog() {
               type="button" 
               variant="outline" 
               onClick={() => setOpen(false)}
+              disabled={loading}
             >
               Cancelar
             </Button>

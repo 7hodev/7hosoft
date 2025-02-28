@@ -2,7 +2,7 @@
 
 import { useStore } from "@/app/context/store-context"; 
 
-export default function Home() {
+export default function InventoryPage() {
   const { selectedStore } = useStore();
 
   return (

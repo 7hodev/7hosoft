@@ -1,4 +1,6 @@
-import { AppSidebar, data } from "@/components/sidebar/app-sidebar";
+"use client";
+
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { NavUser } from "@/components/sidebar/nav-user";
 import {
   Breadcrumb,
@@ -19,19 +21,36 @@ import ThemeToggle from "@/components/theme-toggle";
 import LocaleProvider from "@/components/locale-provider";
 import LanguageToggle from "@/components/language-toggle";
 import { StoreProvider } from "@/app/context/store-context";
+import { usePathname } from "next/navigation";
+import { useStore } from "@/app/context/store-context";
+import { CurrentStoreName } from "@/components/store/current-store-name";
+import { DbProvider } from "@/providers/db-provider";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  // This is sample data.
-  const data = {
-    user: {
-      name: "shadcn",
-      email: "m@example.com",
-      avatar: "/avatars/shadcn.jpg",
-      plan: "Free",
-    },
-  };
+
+  const pageNames: Record<string, string> = {
+      "/": "Inicio",
+      "/dashboard": "Dashboard",
+      "/sales": "Sales",
+      "/inventory": "Inventory",
+      "/personal": "Personal",
+    };
+  
+    const pathname = usePathname(); // Obtiene la URL actual
+    const pageTitle = pageNames[pathname] || "Página Desconocida";
+  
+    // This is sample data.
+    const data = {
+      user: {
+        name: "shadcn",
+        email: "m@example.com",
+        avatar: "/avatars/shadcn.jpg",
+        plan: "Free",
+      },
+    };
 
   return (
+    <DbProvider>
     <StoreProvider>
       <SidebarProvider>
         <AppSidebar />
@@ -44,32 +63,30 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="#">
-                        Building Your Application
+                      <BreadcrumbLink >
+                      <CurrentStoreName />
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                      <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
               <div className="flex items-center gap-2 px-4">
-                <div>
-                </div>
+                <div></div>
                 <div className="">
                   <ThemeToggle />
                 </div>
-                <NavUser user={data.user} />
+                <NavUser />
               </div>
             </header>
-            <div className="flex flex-1 flex-col gap-4 p-5">
-              {children}
-            </div>
+            <div className="flex flex-1 flex-col gap-4 p-5">{children}</div>
           </SidebarInset>
         </main>
       </SidebarProvider>
-      </StoreProvider>
+    </StoreProvider>
+    </DbProvider>
   );
 }

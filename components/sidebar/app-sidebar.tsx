@@ -26,37 +26,32 @@ import {
   SidebarHeader,
   SidebarRail,
   SidebarMenuButton,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { ButtonConfig } from "@/components/config/button-config";
 
 // This is sample data.
 export const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-    plan: "Free",
-  },
   navMain: [
     {
       title: "Home",
-      url: "#",
+      url: "/dashboard",
       icon: SquareTerminal,
       isActive: true,
     },
     {
       title: "Sales",
-      url: "#",
+      url: "/sales",
       icon: Bot,
     },
     {
       title: "Inventory",
-      url: "#",
+      url: "/inventory",
       icon: BookOpen,
     },
     {
       title: "Personal",
-      url: "/conosywaffles/local1/settings",
+      url: "/personal",
       icon: Settings2,
     },
   ],
@@ -80,6 +75,7 @@ export const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
