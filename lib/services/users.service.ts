@@ -22,6 +22,7 @@ export const UsersService = {
                    user.user_metadata?.picture || 
                    ""
       }
+      
     };
   },
 

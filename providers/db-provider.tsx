@@ -7,6 +7,7 @@ import { StoresService } from "@/lib/services/stores.service";
 import { UsersService } from "@/lib/services/users.service";
 import { CustomersService } from "@/lib/services/customers.service";
 import { EmployeesService } from "@/lib/services/employees.service";
+import { UserSettingsService } from "@/lib/services/user-settings.service";
 
 type AppData = {
   user: any;
@@ -47,10 +48,21 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const persistStoreSelection = (store: any) => {
+  const persistStoreSelection = async (store: any) => {
     if (!store) return;
+    
+    // Mantener lógica original de localStorage
     localStorage.setItem("selectedStore", JSON.stringify(store));
     setSelectedStore(store);
+  
+    // Nueva lógica para guardar en Supabase
+    if (user?.id) {
+      try {
+        await UserSettingsService.updateLastStore(user.id, store.id);
+      } catch (error) {
+        console.error("Error guardando última tienda:", error);
+      }
+    }
   };
 
   const loadSalesForStore = async (storeId: string) => {
@@ -74,12 +86,19 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         const storesData = await StoresService.getUserStores(user.id);
         setStores(storesData);
   
-        const savedStore = JSON.parse(localStorage.getItem("selectedStore") || "null");
-        const validStore = storesData.find(s => s.id === savedStore?.id);
-        const targetStore = validStore || storesData[0];
+        // Obtener de ambas fuentes
+        const [savedLocalStore, savedDbStore] = await Promise.all([
+          JSON.parse(localStorage.getItem("selectedStore") || "null"),
+          UserSettingsService.getLastStore(user.id)
+        ]);
+  
+        // Priorizar DB, luego localStorage, luego primera tienda
+        const targetStore = storesData.find(s => s.id === savedDbStore) ||
+                           storesData.find(s => s.id === savedLocalStore?.id) ||
+                           storesData[0];
   
         if (targetStore) {
-          persistStoreSelection(targetStore);
+          setSelectedStore(targetStore); // No llamar a persistStoreSelection aquí
           await loadSalesForStore(targetStore.id);
         }
   
