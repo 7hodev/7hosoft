@@ -1,6 +1,7 @@
 
 import { Separator } from "@/components/ui/separator";
-import LogoutButton from "@/components/auth/logout-button";
+import { SubmitButton } from "@/components/auth/submit-button";
+import { signOutAction } from "@/app/actions";
 
 export const AccountConfig: React.FC = () => {
   return (
@@ -13,8 +14,11 @@ export const AccountConfig: React.FC = () => {
         </p>
       </div>
       <div className="w- flex justify-between">
-      <LogoutButton />
-
+        <form>
+          <SubmitButton className="w-full" pendingText="LogOut..." formAction={signOutAction}>
+            LogOut
+          </SubmitButton>
+        </form>
       </div>
       {/* Agregar formulario de cuenta aquí */}
     </div>

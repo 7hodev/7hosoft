@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { Settings, User, Store, ArrowLeft, LogOut } from "lucide-react";
-import LogoutButton from "@/components/auth/logout-button";
+import { signOutAction } from "@/app/actions";
+import { SubmitButton } from "@/components/auth/submit-button";
 import { AccountConfig, StoreConfig } from "@/components/config/config-pages";
 
 export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
@@ -54,7 +55,7 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
           <h2 className="text-lg font-semibold">Configuración</h2>
         </div>
       </div>
-      
+
       <div className="flex-1 p-4 space-y-1">
         <Button
           variant={selectedSection === "account" ? "secondary" : "ghost"}
@@ -72,11 +73,8 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
           <Store className="h-4 w-4" />
           Tiendas
         </Button>
-        
+
         <Separator className="my-4" />
-        
-          <LogOut className="h-4 w-4" />
-        <LogoutButton />
       </div>
     </div>
   );
@@ -92,7 +90,7 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
           {selectedSection === "stores" && "Tiendas"}
         </h2>
       </div>
-      
+
       <div className="flex-1 p-4 overflow-y-auto">
         {selectedSection === "account" && <AccountConfig />}
         {selectedSection === "stores" && <StoreConfig />}
@@ -104,8 +102,8 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-start gap-2"
             onClick={handleOpen}
           >
@@ -134,8 +132,8 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full justify-start gap-2"
           onClick={handleOpen}
         >
@@ -143,7 +141,7 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
           <span>Configuración</span>
         </Button>
       </DrawerTrigger>
-      
+
       <DrawerContent className="h-[90vh]">
         {showContent ? (
           <MobileContent />

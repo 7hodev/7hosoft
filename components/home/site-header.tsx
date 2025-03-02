@@ -15,7 +15,7 @@ import {
 import { LanguageSwitcher } from "./language-switcher";
 import type { Language } from "@/lib/i18n/translations";
 import * as React from "react";
-import ThemeToggle from "../theme-toggle";
+import ThemeToggle from "@/components/theme-toggle";
 
 interface SiteHeaderProps {
   language: Language;

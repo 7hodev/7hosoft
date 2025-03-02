@@ -11,14 +11,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { useStore } from "@/app/context/store-context"
+import { useDb } from "@/providers/db-provider" // Cambiar importación
+import { StoresService } from "@/lib/services/stores.service" // Agregar importación
 
 export function AddStoreDialog() {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const { refreshStores, setSelectedStore } = useStore()
+  const { refreshData, setSelectedStore } = useDb() // Cambiar contexto
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,18 +32,13 @@ export function AddStoreDialog() {
 
       if (!user) throw new Error("Usuario no autenticado")
 
-      const { data, error } = await supabase
-        .from("stores")
-        .insert([{ name, user_id: user.id }])
-        .select()
-        .single()
-
-      if (error) throw error
+      // Usar el servicio en lugar de Supabase directo
+      const data = await StoresService.createStore(name, user.id)
       
-      await refreshStores()
-      setSelectedStore(data) // Selecciona la nueva tienda
-      setOpen(false) // Cierra el diálogo
-      setName("") // Limpia el campo
+      await refreshData() // Actualizar todos los datos
+      setSelectedStore(data) // Seleccionar nueva tienda
+      setOpen(false)
+      setName("")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al crear tienda")
     } finally {
@@ -50,6 +46,7 @@ export function AddStoreDialog() {
     }
   }
 
+  // Resto del componente permanece igual...
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen)

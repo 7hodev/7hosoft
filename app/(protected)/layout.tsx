@@ -20,9 +20,7 @@ import * as React from "react";
 import ThemeToggle from "@/components/theme-toggle";
 import LocaleProvider from "@/components/locale-provider";
 import LanguageToggle from "@/components/language-toggle";
-import { StoreProvider } from "@/app/context/store-context";
 import { usePathname } from "next/navigation";
-import { useStore } from "@/app/context/store-context";
 import { CurrentStoreName } from "@/components/store/current-store-name";
 import { DbProvider } from "@/providers/db-provider";
 
@@ -51,7 +49,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <DbProvider>
-    <StoreProvider>
       <SidebarProvider>
         <AppSidebar />
         <main className="flex-1 w-full flex flex-col gap-12">
@@ -86,7 +83,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </SidebarInset>
         </main>
       </SidebarProvider>
-    </StoreProvider>
     </DbProvider>
   );
 }

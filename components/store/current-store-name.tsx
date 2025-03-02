@@ -1,18 +1,14 @@
 "use client";
 
-import { useStore } from "@/app/context/store-context";
+import { useDb } from "@/providers/db-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function CurrentStoreName() {
-  const { selectedStore, isLoading } = useStore();
-  
-  if (isLoading) {
-    return <Skeleton className="h-6 w-40" />;
-  }
+  const { selectedStore } = useDb();
 
   return (
     <span className="font-medium">
-      {selectedStore?.name || "Selecciona una tienda"}
+      {selectedStore?.name || ""}
     </span>
   );
 }

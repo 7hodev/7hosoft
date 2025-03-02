@@ -1,16 +1,24 @@
 // components/user-profile-badge.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { dbService, type AppUser } from "@/lib/db-service";
+import { useDb } from "@/providers/db-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type UserProfileBadgeProps = {
-  userData?: Partial<AppUser>; // Permite pasar datos desde fuera
+  userData?: Partial<AppUser>;
   showName?: boolean;
   showEmail?: boolean;
   responsive?: boolean;
+};
+
+type AppUser = {
+  id: string;
+  email?: string;
+  display_name: string;
+  metadata: {
+    avatar_url?: string;
+  };
 };
 
 export function UserProfileBadge({
@@ -19,25 +27,9 @@ export function UserProfileBadge({
   showEmail = false,
   responsive = false
 }: UserProfileBadgeProps) {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!userData) {
-      const loadUser = async () => {
-        try {
-          const currentUser = await dbService.getCurrentUser();
-          setUser(currentUser);
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadUser();
-    } else {
-      setUser(userData as AppUser);
-      setLoading(false);
-    }
-  }, [userData]);
+  const { user: contextUser, loading: contextLoading } = useDb();
+  const user = userData ? (userData as AppUser) : contextUser;
+  const loading = userData ? false : contextLoading;
 
   if (loading) {
     return (

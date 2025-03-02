@@ -14,15 +14,14 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export function SalesTable() {
-  const { sales, employees, customers, selectedStore } = useDb();
+  const { sales, customers, employees, selectedStore } = useDb();
 
   const getCustomerName = (customerId: string) => {
     return customers.find(c => c.id === customerId)?.name || "N/A";
   };
 
   const getEmployeeName = (employeeId: string) => {
-    const employee = employees.find(e => e.id === employeeId);
-    return employee ? employee.name : "N/A";
+    return employees.find(e => e.id === employeeId)?.name || "N/A";
   };
 
   if (!selectedStore) return null;

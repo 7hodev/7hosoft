@@ -3,19 +3,20 @@ import { createClient } from "@/utils/supabase/client";
 export const StoresService = {
   getUserStores: async (userId: string) => {
     const { data, error } = await createClient()
-      .from('stores')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .from("stores")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data;
+    return data || [];
   },
 
-  createStore: async (storeData: { name: string; user_id: string }) => {
-    const { data, error } = await createClient()
-      .from('stores')
-      .insert(storeData)
+  createStore: async (name: string, userId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("stores")
+      .insert([{ name, user_id: userId }])
       .select()
       .single();
 

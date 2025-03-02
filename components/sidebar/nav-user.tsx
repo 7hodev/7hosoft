@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import LogoutButton from "@/components/auth/logout-button";
 import {
   BadgeCheck,
   Bell,
@@ -27,6 +26,8 @@ import {
 } from "@/components/ui/sidebar";
 import { ButtonConfig } from "../config/button-config";
 import { UserProfileBadge } from "../profile/user-profile-badge";
+import { signOutAction } from "@/app/actions";
+import { SubmitButton } from "../auth/submit-button";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -85,8 +86,11 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <LogOut className="mr-2 h-4 w-4" />
-              <LogoutButton />
+              <form className="w-full">
+                <SubmitButton className="w-full" pendingText="LogOut..." formAction={signOutAction}>
+                  LogOut
+                </SubmitButton>
+              </form>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
