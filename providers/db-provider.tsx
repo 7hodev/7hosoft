@@ -1,3 +1,4 @@
+// app/context/db-provider.tsx
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
@@ -32,9 +33,9 @@ const DbContext = createContext<AppData>({
   selectedStore: null,
   loading: true,
   error: null,
-  refreshData: async () => {},
-  setSelectedStore: () => {},
-  createSale: async () => {},
+  refreshData: async () => { },
+  setSelectedStore: () => { },
+  createSale: async () => { },
 });
 
 export function DbProvider({ children }: { children: React.ReactNode }) {
@@ -49,19 +50,26 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const persistStoreSelection = async (store: any) => {
-    if (!store) return;
-    
-    // Mantener lógica original de localStorage
-    localStorage.setItem("selectedStore", JSON.stringify(store));
-    setSelectedStore(store);
-  
-    // Nueva lógica para guardar en Supabase
-    if (user?.id) {
-      try {
-        await UserSettingsService.updateLastStore(user.id, store.id);
-      } catch (error) {
-        console.error("Error guardando última tienda:", error);
-      }
+    if (!store?.id || typeof store.id !== "number") {
+      console.error("ID de tienda inválido");
+      return;
+    }
+
+    try {
+      // Guardar en Supabase
+      await UserSettingsService.upsertLastStore(user.id, store.id);
+      
+      // Actualizar estado local
+      setSelectedStore(store);
+      
+      // Guardar en localStorage como respaldo
+      localStorage.setItem("selectedStore", JSON.stringify(store));
+      
+    } catch (error) {
+      console.error("Error al guardar última tienda:", error);
+      // Fallback a localStorage
+      localStorage.setItem("selectedStore", JSON.stringify(store));
+      setSelectedStore(store);
     }
   };
 
@@ -78,31 +86,32 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      
+
       const user = await UsersService.getCurrentUser();
       setUser(user);
-  
+
       if (user) {
+        // Cargar tiendas del usuario
         const storesData = await StoresService.getUserStores(user.id);
         setStores(storesData);
-  
-        // Obtener de ambas fuentes
-        const [savedLocalStore, savedDbStore] = await Promise.all([
-          JSON.parse(localStorage.getItem("selectedStore") || "null"),
-          UserSettingsService.getLastStore(user.id)
+
+        // Obtener última tienda de 2 fuentes
+        const [dbStoreId, localStore] = await Promise.all([
+          UserSettingsService.getLastStore(user.id),
+          JSON.parse(localStorage.getItem("selectedStore") || "null")
         ]);
-  
-        // Priorizar DB, luego localStorage, luego primera tienda
-        const targetStore = storesData.find(s => s.id === savedDbStore) ||
-                           storesData.find(s => s.id === savedLocalStore?.id) ||
+
+        // Buscar tienda priorizando: Supabase > localStorage > primera tienda
+        const targetStore = storesData.find(s => s.id === dbStoreId) ||
+                           storesData.find(s => s.id === localStore?.id) ||
                            storesData[0];
-  
+
         if (targetStore) {
-          setSelectedStore(targetStore); // No llamar a persistStoreSelection aquí
+          setSelectedStore(targetStore);
           await loadSalesForStore(targetStore.id);
         }
-  
-        // Obtener empleados y clientes asociados al usuario
+
+        // Cargar empleados y clientes
         const [customersData, employeesData] = await Promise.all([
           CustomersService.getUserCustomers(user.id),
           EmployeesService.getUserEmployees(user.id)

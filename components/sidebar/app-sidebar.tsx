@@ -15,7 +15,6 @@ import {
   SquareTerminal,
   Building2,
 } from "lucide-react";
-
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { TeamSwitcher } from "@/components/sidebar/team-switcher";
@@ -32,6 +31,7 @@ import { ButtonConfig } from "@/components/config/button-config";
 
 // This is sample data.
 export const data = {
+
   navMain: [
     {
       title: "Home",
@@ -52,6 +52,11 @@ export const data = {
     {
       title: "Personal",
       url: "/personal",
+      icon: Settings2,
+    },
+    {
+      title: "Team Chat",
+      url: "/chat",
       icon: Settings2,
     },
   ],
@@ -76,30 +81,31 @@ export const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
-  return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <SidebarMenuButton
-          asChild
-          className="flex h-8 w-max items-center justify-center rounded-md py-2 text-sm font-medium hover:bg-transparent disabled:pointer-events-none "
-        >
-          <div className="flex items-center gap-2">
-            <Building2 className="" />
-            <span className="">7hoSoft</span>
-          </div>
-        </SidebarMenuButton>
-        <TeamSwitcher />
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        {/*
-        <NavProjects projects={data.projects} />
-       */}
-      </SidebarContent>
-      <SidebarFooter>
-        <ButtonConfig />
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
-  );
+    return (
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <SidebarMenuButton
+            asChild
+            className="flex h-8 w-max items-center justify-center rounded-md py-2 text-sm font-medium hover:bg-transparent disabled:pointer-events-none "
+          >
+            <div className="flex items-center gap-2">
+              <Building2 className="" />
+              <span className="">7hoSoft</span>
+            </div>
+          </SidebarMenuButton>
+          <TeamSwitcher />
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={data.navMain} />
+          {/*
+          <NavProjects projects={data.projects} />
+         */}
+        </SidebarContent>
+        <SidebarFooter className="overflow-hidden">
+          <ButtonConfig />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    );
+  
 }

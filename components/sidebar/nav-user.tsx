@@ -80,7 +80,7 @@ export function NavUser() {
                 <Bell className="mr-2 h-4 w-4" />
                 Notificaciones
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <DropdownMenuItem className="p-0" onSelect={(e) => e.preventDefault()}>
                 <ButtonConfig />
               </DropdownMenuItem>
             </DropdownMenuGroup>

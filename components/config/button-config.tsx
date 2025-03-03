@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -21,12 +22,13 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
+import { useSidebar, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Settings, User, Store, ArrowLeft, LogOut } from "lucide-react";
-import { signOutAction } from "@/app/actions";
-import { SubmitButton } from "@/components/auth/submit-button";
 import { AccountConfig, StoreConfig } from "@/components/config/config-pages";
 
 export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
+  const { state, isMobile, setOpenMobile  } = useSidebar();
+  const isCollapsed = state === "collapsed";
   const [open, setOpen] = React.useState(false);
   const [selectedSection, setSelectedSection] = React.useState("");
   const [showContent, setShowContent] = React.useState(false);
@@ -34,7 +36,10 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
 
   const handleOpen = () => {
     onOpen?.();
-    setOpen(true);
+    // Cerrar sidebar solo en mobile
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   const handleMobileSelection = (section: string) => {
@@ -52,7 +57,7 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
       <div className="p-4 border-b">
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">Configuración</h2>
+          <span className="text-lg font-semibold">Configuration</span>
         </div>
       </div>
 
@@ -102,14 +107,16 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2"
+          <SidebarMenuButton
+            className={cn(
+              "w-full transition-all",
+              isCollapsed ? "justify-center" : "justify-start"
+            )}
             onClick={handleOpen}
           >
             <Settings className="h-4 w-4" />
-            <span>Configuración</span>
-          </Button>
+            {!isCollapsed && <span>configuration</span>}
+          </SidebarMenuButton>
         </DialogTrigger>
         <DialogContent className="max-w-4xl h-[80vh] flex p-0">
           <div className="w-[240px] border-r">
@@ -121,6 +128,10 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
                 {selectedSection === "account" && "Configuración de Cuenta"}
                 {selectedSection === "stores" && "Administrar Tiendas"}
               </DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete your account
+                and remove your data from our servers.
+              </DialogDescription>
             </DialogHeader>
             {selectedSection === "account" ? <AccountConfig /> : <StoreConfig />}
           </div>
@@ -132,17 +143,19 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2"
+        <SidebarMenuButton
+          className={cn(
+            "w-full transition-all",
+            isCollapsed ? "justify-center" : "justify-start"
+          )}
           onClick={handleOpen}
         >
           <Settings className="h-4 w-4" />
-          <span>Configuración</span>
-        </Button>
+          {!isCollapsed && <span>configuration</span>}
+        </SidebarMenuButton>
       </DrawerTrigger>
 
-      <DrawerContent className="h-[90vh]">
+      <DrawerContent className="h-[80vh]">
         {showContent ? (
           <MobileContent />
         ) : (
