@@ -9,14 +9,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerClose,
+} from "@/components/ui/drawer"
+import {
   useSidebar
 } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useDb } from "@/providers/db-provider"
 import { StoresService } from "@/lib/services/stores.service"
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden" // Importar este componente
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 export function AddStoreDialog() {
   const { setOpen: setSidebarOpen } = useSidebar(); 
@@ -25,6 +34,7 @@ export function AddStoreDialog() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const { refreshData, setSelectedStore } = useDb()
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,22 +60,98 @@ export function AddStoreDialog() {
     }
   }
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen)
+    
+    // Si se está cerrando, resetear el formulario
+    if (!isOpen) {
+      setName("")
+      setError("")
+    }
+  }
+
+  // Contenido del formulario compartido entre Dialog y Drawer
+  const FormContent = () => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Nombre de la tienda"
+        required
+        disabled={loading}
+      />
+
+      <div className="flex justify-end gap-2">
+        {isMobile ? (
+          <DrawerClose asChild>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+          </DrawerClose>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" disabled={loading}>
+          {loading ? "Creando..." : "Crear"}
+        </Button>
+      </div>
+
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+    </form>
+  )
+
+  // Renderizado condicional basado en el tamaño de pantalla
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerTrigger asChild>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start"
+          >
+            Nueva tienda
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <DrawerTitle className="text-lg font-semibold tracking-tight">
+              Nueva tienda
+            </DrawerTitle>
+            <p className="text-sm text-muted-foreground">
+              Crea una nueva tienda para gestionar productos y ventas
+            </p>
+          </DrawerHeader>
+          <div className="px-4 pb-4">
+            <FormContent />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      setOpen(isOpen)
-      if (!isOpen) {
-        setName("")
-        setError("")
-      }
-    }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start"
+        >
           Nueva tienda
         </Button>
       </DialogTrigger>
 
       <DialogContent>
-        {/* Añadir título accesible incluso para screen readers */}
         <VisuallyHidden>
           <DialogTitle>Crear nueva tienda</DialogTitle>
         </VisuallyHidden>
@@ -79,31 +165,7 @@ export function AddStoreDialog() {
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre de la tienda"
-            required
-            disabled={loading}
-          />
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creando..." : "Crear"}
-            </Button>
-          </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-        </form>
+        <FormContent />
       </DialogContent>
     </Dialog>
   )

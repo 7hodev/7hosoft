@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, Home, Inbox, LucideIcon, Search, Settings } from "lucide-react";
+import {
+  Calendar, Home, Inbox, LucideIcon, Search, Settings, Wallet, MessageSquare, Box, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,21 +14,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { usePathname } from "next/navigation";
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string;
-    url: string;
-    icon?: LucideIcon; // Puede ser undefined
-    isActive?: boolean;
-    items?: {
-      title: string;
-      url: string;
-    }[];
-  }[];
-}) {
+export function NavMain() {
 
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
@@ -37,22 +26,60 @@ export function NavMain({
     }
   };
 
+  const pathname = usePathname();
+
+  const data = {
+
+    navMain: [
+      {
+        name: "Home",
+        icon: Home,
+        href: "/dashboard",
+        active: pathname === "/dashboard" || pathname.startsWith("/dashboard"),
+      },
+      {
+        name: "Sales",
+        icon: Wallet,
+        href: "/sales",
+        active: pathname === "/sales" || pathname.startsWith("/sales/"),
+      },
+      {
+        name: "Team Chat",
+        icon: MessageSquare,
+        href: "/chat",
+        active: pathname === "/chat" || pathname.startsWith("/chat/"),
+      },
+      {
+        name: "Inventory",
+        icon: Box,
+        href: "/inventory",
+        active: pathname === "/inventory" || pathname.startsWith("/inventory/"),
+      },
+      {
+        name: "Personal",
+        icon: User,
+        href: "/personal",
+        active: pathname === "/personal" || pathname.startsWith("/personal/"),
+      },
+    ],
+  };
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Application</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
+          {data.navMain.map((item) => (
+            <SidebarMenuItem key={item.name}>
               <SidebarMenuButton
                 asChild
               >
                 <Link
-                  href={item.url}
+                  href={item.href}
                   onClick={handleMobileClose}
                 >
                   {item.icon && <item.icon className="mr-2" />}
-                  <span>{item.title}</span>
+                  <span>{item.name}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

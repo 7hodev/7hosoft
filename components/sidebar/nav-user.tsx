@@ -87,7 +87,12 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <form className="w-full">
-                <SubmitButton className="w-full" pendingText="LogOut..." formAction={signOutAction}>
+                <SubmitButton 
+                  className="w-full flex items-center justify-start px-2 py-0 text-xs min-h-0 h-8 bg-transparent text-foreground hover:bg-foreground hover:text-background focus:bg-transparent" 
+                  pendingText="LogOut..." 
+                  formAction={signOutAction}
+                >
+                  <LogOut className="mr-2 h-3.5 w-3.5" />
                   LogOut
                 </SubmitButton>
               </form>

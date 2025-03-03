@@ -25,7 +25,7 @@ import { CurrentStoreName } from "@/components/store/current-store-name";
 import { DbProvider } from "@/providers/db-provider";
 import { useSidebar } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/sidebar/team-switcher";
-import { BottomNav } from "@/components/sidebar/button-nav-responsive";
+import { BottomNav } from "@/components/sidebar/nav-responsive";
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isMobile } = useSidebar();
@@ -52,7 +52,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-    <AppSidebar />
+      <AppSidebar />
       <main className="flex-1 w-full flex flex-col gap-12">
         <SidebarInset>
           <header className="flex h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -61,17 +61,21 @@ function AppContent({ children }: { children: React.ReactNode }) {
               <Separator orientation="vertical" className="mr-2 h-4" />
               <Breadcrumb>
                 <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
-                  </BreadcrumbItem>
-
-                  <BreadcrumbSeparator className="" />
-
                   <BreadcrumbItem className="">
                     <BreadcrumbLink>
                       {isMobile ? <TeamSwitcher /> : <CurrentStoreName />}
                     </BreadcrumbLink>
                   </BreadcrumbItem>
+
+                  {!isMobile && <BreadcrumbSeparator className="" />}
+
+                  {!isMobile &&
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>
+                        {pageTitle}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  }
                 </BreadcrumbList>
               </Breadcrumb>
             </div>

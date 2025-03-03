@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +18,17 @@ import {
 import { useDb } from "@/providers/db-provider";
 import { AddStoreDialog } from "@/components/store/add-store-dialog";
 import { TeamSwitcherSkeleton } from "../skeleton/team-switcher-skeleton";
+import { useState, useEffect, useCallback } from "react";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
   const { stores, selectedStore, setSelectedStore, loading } = useDb();
+  const [open, setOpen] = useState(false);
+
+  // Función para cerrar el dropdown
+  const closeDropdown = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   return (
     <SidebarMenu>
@@ -29,7 +36,7 @@ export function TeamSwitcher() {
         {loading ? (
           <TeamSwitcherSkeleton />
         ) : (
-          <DropdownMenu>
+          <DropdownMenu open={open} onOpenChange={setOpen}>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"

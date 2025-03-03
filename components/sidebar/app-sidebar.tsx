@@ -14,6 +14,11 @@ import {
   Settings2,
   SquareTerminal,
   Building2,
+  Home,
+  Wallet,
+  MessageSquare,
+  Box,
+  User,
 } from "lucide-react";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
@@ -28,56 +33,6 @@ import {
   useSidebar
 } from "@/components/ui/sidebar";
 import { ButtonConfig } from "@/components/config/button-config";
-
-// This is sample data.
-export const data = {
-
-  navMain: [
-    {
-      title: "Home",
-      url: "/dashboard",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Sales",
-      url: "/sales",
-      icon: Bot,
-    },
-    {
-      title: "Inventory",
-      url: "/inventory",
-      icon: BookOpen,
-    },
-    {
-      title: "Personal",
-      url: "/personal",
-      icon: Settings2,
-    },
-    {
-      title: "Team Chat",
-      url: "/chat",
-      icon: Settings2,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
@@ -96,7 +51,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <TeamSwitcher />
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={data.navMain} />
+          <NavMain/>
           {/*
           <NavProjects projects={data.projects} />
          */}
