@@ -55,22 +55,27 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <main className="flex-1 w-full flex flex-col gap-12">
         <SidebarInset>
-          <header className="flex h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <header className="flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4">
-              {!isMobile && <SidebarTrigger className="-ml-1" />}
+              <SidebarTrigger className="-ml-1 hidden md:block" />
               <Separator orientation="vertical" className="mr-2 h-4" />
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="">
                     <BreadcrumbLink>
-                      {isMobile ? <TeamSwitcher /> : <CurrentStoreName />}
+                      <div className="md:hidden">
+                        <TeamSwitcher />
+                      </div>
+                      <div className="hidden md:block">
+                        <CurrentStoreName />
+                      </div>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
 
-                  {!isMobile && <BreadcrumbSeparator className="" />}
+                  <BreadcrumbSeparator className="hidden md:block" />
 
                   {!isMobile &&
-                    <BreadcrumbItem>
+                    <BreadcrumbItem className="hidden md:block">
                       <BreadcrumbPage>
                         {pageTitle}
                       </BreadcrumbPage>
@@ -87,7 +92,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
               <NavUser />
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-5">{children}</div>
+          <div className="flex flex-1 flex-col gap-4 p-3 md:p-5">{children}</div>
         </SidebarInset>
       </main>
     </>

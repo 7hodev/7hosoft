@@ -25,11 +25,6 @@ export function TeamSwitcher() {
   const { stores, selectedStore, setSelectedStore, loading } = useDb();
   const [open, setOpen] = useState(false);
 
-  // Función para cerrar el dropdown
-  const closeDropdown = useCallback(() => {
-    setOpen(false);
-  }, []);
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>

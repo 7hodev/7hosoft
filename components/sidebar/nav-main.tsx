@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function NavMain() {
 
@@ -73,6 +74,10 @@ export function NavMain() {
             <SidebarMenuItem key={item.name}>
               <SidebarMenuButton
                 asChild
+                className={cn(
+                  "",
+                  item.active ? "text-white bg-primary dark:bg-foreground/10" : "text-muted-foreground"
+                )}
               >
                 <Link
                   href={item.href}

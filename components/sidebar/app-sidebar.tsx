@@ -2,23 +2,7 @@
 
 import * as React from "react";
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings,
-  Settings2,
-  SquareTerminal,
   Building2,
-  Home,
-  Wallet,
-  MessageSquare,
-  Box,
-  User,
 } from "lucide-react";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
@@ -36,31 +20,31 @@ import { ButtonConfig } from "@/components/config/button-config";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
-    return (
-      <Sidebar collapsible="icon" {...props}>
-        <SidebarHeader>
-          <SidebarMenuButton
-            asChild
-            className="flex h-8 w-max items-center justify-center rounded-md py-2 text-sm font-medium hover:bg-transparent disabled:pointer-events-none "
-          >
-            <div className="flex items-center gap-2">
-              <Building2 className="" />
-              <span className="">7hoSoft</span>
-            </div>
-          </SidebarMenuButton>
-          <TeamSwitcher />
-        </SidebarHeader>
-        <SidebarContent>
-          <NavMain/>
-          {/*
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <SidebarMenuButton
+          asChild
+          className="flex h-8 w-max items-center justify-center rounded-md py-2 text-sm font-medium hover:bg-transparent disabled:pointer-events-none "
+        >
+          <div className="flex items-center gap-2">
+            <Building2 className="" />
+            <span className="">7hoSoft</span>
+          </div>
+        </SidebarMenuButton>
+        <TeamSwitcher />
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain />
+        {/*
           <NavProjects projects={data.projects} />
          */}
-        </SidebarContent>
-        <SidebarFooter className="overflow-hidden">
-          <ButtonConfig />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-    );
-  
+      </SidebarContent>
+      <SidebarFooter className="overflow-hidden">
+        <ButtonConfig />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+
 }

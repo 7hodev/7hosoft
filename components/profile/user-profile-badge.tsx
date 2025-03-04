@@ -35,8 +35,14 @@ export function UserProfileBadge({
     return (
       <div className="flex items-center gap-2">
         <Skeleton className="h-8 w-8 rounded-full" />
-        {(showName || showEmail) && (
-          <div className="space-y-1">
+        {(showName || showEmail) && !responsive && (
+          <div className="space-y-1 hidden md:block">
+            {showName && <Skeleton className="h-4 w-[100px]" />}
+            {showEmail && <Skeleton className="h-3 w-[80px]" />}
+          </div>
+        )}
+        {(showName || showEmail) && responsive && (
+          <div className="space-y-1 hidden md:block">
             {showName && <Skeleton className="h-4 w-[100px]" />}
             {showEmail && <Skeleton className="h-3 w-[80px]" />}
           </div>
