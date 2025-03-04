@@ -54,7 +54,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     <>
       <AppSidebar />
       <main className="flex-1 w-full flex flex-col gap-12 m-0 p-0">
-        <SidebarInset>
+        <SidebarInset className="m-0 p-0">
           <header className="bg-orange-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
