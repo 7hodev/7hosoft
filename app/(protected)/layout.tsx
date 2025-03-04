@@ -51,7 +51,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <>
+    <div className="m-0 p-0">
       <AppSidebar className="m-0 p-0" />
       <main className="flex-1 w-full flex flex-col gap-0 m-0 p-0">
         <SidebarInset className="m-0 p-0">
@@ -95,7 +95,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
           <div className="flex flex-1 flex-col gap-2 p-2 md:p-5">{children}</div>
         </SidebarInset>
       </main>
-    </>
+    </div>
   );
 }
 
