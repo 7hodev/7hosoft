@@ -53,7 +53,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <>
       <AppSidebar />
-      <main className="flex-1 w-full flex flex-col gap-12">
+      <main className="flex-1 w-full flex flex-col gap-12 m-0 p-0">
         <SidebarInset>
           <header className="bg-orange-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4">
