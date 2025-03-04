@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDb } from "@/providers/db-provider";
 import { useEffect, useState } from "react";
+import { SaleStatus } from "@/lib/services/sales.service";
 
 export function SalesCreateDialog() {
   const { selectedStore, customers, employees, createSale, refreshData } = useDb();
@@ -44,10 +45,10 @@ export function SalesCreateDialog() {
         customer_id: formData.customer_id,
         employee_id: formData.employee_id,
         total_amount: Number(formData.amount),
-        sale_date: new Date().toISOString()
+        sale_date: new Date().toISOString(),
+        status: "pending" as SaleStatus // Establecemos el estado por defecto
       });
       
-      await refreshData();
       setFormData({ amount: "", customer_id: "", employee_id: "" });
       setOpen(false);
     } catch (err) {
