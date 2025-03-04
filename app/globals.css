@@ -77,20 +77,21 @@
 
 @layer base {
   * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-
-
-@layer base {
-  * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    /* Prevenir el efecto de "elastic scrolling" en dispositivos móviles */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Asegurar que el contenido sea scrollable dentro del contenedor fijo */
+  html {
+    overscroll-behavior: none;
   }
 }

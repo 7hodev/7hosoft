@@ -57,7 +57,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       </div>
       <main className="flex-1 w-full flex flex-col gap-0">
         <SidebarInset>
-          <header className="bg-red-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 mt-0 pt-0">
+          <header className="bg-blue-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 mt-0 pt-0">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
               <Separator orientation="vertical" className="mr-2 h-4" />
@@ -106,8 +106,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <DbProvider>
       <SidebarProvider>
-        <AppContent>{children}</AppContent>
-        <BottomNav />
+        <div className="fixed inset-0 overflow-hidden">
+          <div className="h-full w-full overflow-auto overscroll-none">
+            <AppContent>{children}</AppContent>
+            <BottomNav />
+          </div>
+        </div>
       </SidebarProvider>
     </DbProvider>
   );
