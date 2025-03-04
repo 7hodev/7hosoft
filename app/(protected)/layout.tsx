@@ -51,11 +51,13 @@ function AppContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="m-0 p-0">
-      <AppSidebar className="m-0 p-0" />
-      <main className="flex-1 w-full flex flex-col gap-0 m-0 p-0">
-        <SidebarInset className="m-0 p-0">
-          <header className="bg-orange-500 flex h-12 md:h-16 shrink-0 justify-between items-center transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 mt-0">
+    <>
+      <div className="hidden md:block">
+        <AppSidebar/>
+      </div>
+      <main className="flex-1 w-full flex flex-col gap-0">
+        <SidebarInset>
+          <header className="bg-red-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 mt-0 pt-0">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
               <Separator orientation="vertical" className="mr-2 h-4" />
@@ -95,7 +97,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
           <div className="flex flex-1 flex-col gap-2 p-2 md:p-5">{children}</div>
         </SidebarInset>
       </main>
-    </div>
+    </>
   );
 }
 
