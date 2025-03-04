@@ -28,8 +28,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           className="flex h-8 w-max items-center justify-center rounded-md py-2 text-sm font-medium hover:bg-transparent disabled:pointer-events-none "
         >
           <div className="flex items-center gap-2">
-            <Building2 className="" />
-            <span className="">7hoSoft</span>
+            <Building2 className="h-5 w-5 shrink-0" />
+            <span className="font-bold text-xl group-data-[collapsible=icon]:group-data-[state=collapsed]:hidden">
+              <span className="text-primary">7ho</span>
+              <span>Soft</span>
+            </span>
           </div>
         </SidebarMenuButton>
         <TeamSwitcher />

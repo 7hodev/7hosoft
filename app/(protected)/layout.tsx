@@ -55,9 +55,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <main className="flex-1 w-full flex flex-col gap-12">
         <SidebarInset>
-          <header className="flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <header className="bg-orange-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1 hidden md:block" />
+              <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
               <Separator orientation="vertical" className="mr-2 h-4" />
               <Breadcrumb>
                 <BreadcrumbList>
