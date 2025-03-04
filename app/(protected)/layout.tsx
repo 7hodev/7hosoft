@@ -51,53 +51,48 @@ function AppContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <>
-      <div className="hidden md:block">
-        <AppSidebar/>
+    <SidebarInset className="flex-1 flex flex-col h-full overflow-hidden">
+      <header className="flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 z-10 bg-background">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="">
+                <BreadcrumbLink>
+                  <div className="md:hidden">
+                    <TeamSwitcher />
+                  </div>
+                  <div className="hidden md:block">
+                    <CurrentStoreName />
+                  </div>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+
+              <BreadcrumbSeparator className="hidden md:block" />
+
+              {!isMobile &&
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbPage>
+                    {pageTitle}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              }
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        <div className="flex items-center gap-2 px-4">
+          <div></div>
+          <div className="">
+            <ThemeToggle />
+          </div>
+          <NavUser />
+        </div>
+      </header>
+      <div className="flex-1 overflow-auto overscroll-none">
+        <div className="flex flex-1 flex-col gap-2 p-2 md:p-5">{children}</div>
       </div>
-      <main className="flex-1 w-full flex flex-col gap-0">
-        <SidebarInset>
-          <header className="bg-blue-500 flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 mt-0 pt-0">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="">
-                    <BreadcrumbLink>
-                      <div className="md:hidden">
-                        <TeamSwitcher />
-                      </div>
-                      <div className="hidden md:block">
-                        <CurrentStoreName />
-                      </div>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-
-                  <BreadcrumbSeparator className="hidden md:block" />
-
-                  {!isMobile &&
-                    <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbPage>
-                        {pageTitle}
-                      </BreadcrumbPage>
-                    </BreadcrumbItem>
-                  }
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-            <div className="flex items-center gap-2 px-4">
-              <div></div>
-              <div className="">
-                <ThemeToggle />
-              </div>
-              <NavUser />
-            </div>
-          </header>
-          <div className="flex flex-1 flex-col gap-2 p-2 md:p-5">{children}</div>
-        </SidebarInset>
-      </main>
-    </>
+    </SidebarInset>
   );
 }
 
@@ -106,11 +101,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <DbProvider>
       <SidebarProvider>
-        <div className="fixed inset-0 overflow-hidden">
-          <div className="h-full w-full overflow-auto overscroll-none">
+        <div className="fixed inset-0 flex overflow-hidden">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col overflow-hidden">
             <AppContent>{children}</AppContent>
-            <BottomNav />
           </div>
+          <BottomNav />
         </div>
       </SidebarProvider>
     </DbProvider>
