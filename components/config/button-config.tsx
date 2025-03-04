@@ -26,13 +26,36 @@ import { useSidebar, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Settings, User, Store, ArrowLeft, LogOut } from "lucide-react";
 import { AccountConfig, StoreConfig } from "@/components/config/config-pages";
 
-export function ButtonConfig({ onOpen, initialSection = "account" }: { onOpen?: () => void, initialSection?: string }) {
+export function ButtonConfig({ 
+  onOpen, 
+  initialSection = "account", 
+  open, 
+  onOpenChange,
+  customTrigger 
+}: { 
+  onOpen?: () => void, 
+  initialSection?: string,
+  open?: boolean,
+  onOpenChange?: (open: boolean) => void,
+  customTrigger?: React.ReactNode
+}) {
   const { state, isMobile, setOpenMobile  } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
   const [selectedSection, setSelectedSection] = React.useState(initialSection);
-  const [showContent, setShowContent] = React.useState(true); 
+  const [showContent, setShowContent] = React.useState(false); 
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Usar estado controlado si se proporcionan open y onOpenChange
+  const isControlled = open !== undefined && onOpenChange !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const setOpen = React.useCallback((value: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(value);
+    } else {
+      setInternalOpen(value);
+    }
+  }, [isControlled, onOpenChange]);
 
   // Asegurar que selectedSection se actualice si initialSection cambia
   React.useEffect(() => {
@@ -60,14 +83,16 @@ export function ButtonConfig({ onOpen, initialSection = "account" }: { onOpen?: 
 
   const SettingsSidebar = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          <span className="text-lg font-semibold">Configuration</span>
+      {!isMobile && (
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            <span className="text-lg font-semibold">Configuration</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 p-4 space-y-1">
+      <div className={cn("flex-1 space-y-1", isMobile ? "pt-2 px-4" : "p-4")}>
         <Button
           variant={selectedSection === "account" ? "secondary" : "ghost"}
           className="w-full justify-start gap-2"
@@ -111,19 +136,25 @@ export function ButtonConfig({ onOpen, initialSection = "account" }: { onOpen?: 
 
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <SidebarMenuButton
-            className={cn(
-              "w-full transition-all",
-              isCollapsed ? "justify-center" : "justify-start"
-            )}
-            onClick={handleOpen}
-          >
-            <Settings className="h-4 w-4" />
-            {!isCollapsed && <span>configuration</span>}
-          </SidebarMenuButton>
-        </DialogTrigger>
+      <Dialog open={isOpen} onOpenChange={setOpen}>
+        {customTrigger ? (
+          <DialogTrigger asChild>
+            {customTrigger}
+          </DialogTrigger>
+        ) : (
+          <DialogTrigger asChild>
+            <SidebarMenuButton
+              className={cn(
+                "w-full transition-all",
+                isCollapsed ? "justify-center" : "justify-start"
+              )}
+              onClick={handleOpen}
+            >
+              <Settings className="h-4 w-4" />
+              {!isCollapsed && <span>configuration</span>}
+            </SidebarMenuButton>
+          </DialogTrigger>
+        )}
         <DialogContent className="max-w-4xl h-[80vh] flex p-0">
           <div className="w-[240px] border-r">
             <SettingsSidebar />
@@ -145,27 +176,32 @@ export function ButtonConfig({ onOpen, initialSection = "account" }: { onOpen?: 
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <SidebarMenuButton
-          className={cn(
-            "w-full transition-all",
-            isCollapsed ? "justify-center" : "justify-start"
-          )}
-          onClick={handleOpen}
-        >
-          <Settings className="h-4 w-4" />
-          {!isCollapsed && <span>configuration</span>}
-        </SidebarMenuButton>
-      </DrawerTrigger>
-
+    <Drawer open={isOpen} onOpenChange={setOpen}>
+      {customTrigger ? (
+        <DrawerTrigger asChild>
+          {customTrigger}
+        </DrawerTrigger>
+      ) : (
+        <DrawerTrigger asChild>
+          <SidebarMenuButton
+            className={cn(
+              "w-full transition-all",
+              isCollapsed ? "justify-center" : "justify-start"
+            )}
+            onClick={handleOpen}
+          >
+            <Settings className="h-4 w-4" />
+            {!isCollapsed && <span>configuration</span>}
+          </SidebarMenuButton>
+        </DrawerTrigger>
+      )}
       <DrawerContent className="h-[80vh]">
         {showContent ? (
           <MobileContent />
         ) : (
           <>
             <DrawerHeader>
-              <DrawerTitle>Configuración</DrawerTitle>
+              <DrawerTitle>Configuration</DrawerTitle>
             </DrawerHeader>
             <SettingsSidebar isMobile />
             <DrawerFooter>
