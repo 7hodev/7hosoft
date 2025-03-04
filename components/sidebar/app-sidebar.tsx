@@ -44,7 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
          */}
       </SidebarContent>
       <SidebarFooter className="overflow-hidden">
-        <ButtonConfig />
+        <ButtonConfig initialSection="account" />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

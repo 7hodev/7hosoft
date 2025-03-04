@@ -81,7 +81,7 @@ export function NavUser() {
                 Notificaciones
               </DropdownMenuItem>
               <DropdownMenuItem className="p-0" onSelect={(e) => e.preventDefault()}>
-                <ButtonConfig />
+                <ButtonConfig initialSection="account" />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

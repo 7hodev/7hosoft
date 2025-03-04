@@ -26,19 +26,25 @@ import { useSidebar, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Settings, User, Store, ArrowLeft, LogOut } from "lucide-react";
 import { AccountConfig, StoreConfig } from "@/components/config/config-pages";
 
-export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
+export function ButtonConfig({ onOpen, initialSection = "account" }: { onOpen?: () => void, initialSection?: string }) {
   const { state, isMobile, setOpenMobile  } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [open, setOpen] = React.useState(false);
-  const [selectedSection, setSelectedSection] = React.useState("");
-  const [showContent, setShowContent] = React.useState(false);
+  const [selectedSection, setSelectedSection] = React.useState(initialSection);
+  const [showContent, setShowContent] = React.useState(true); 
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Asegurar que selectedSection se actualice si initialSection cambia
+  React.useEffect(() => {
+    setSelectedSection(initialSection);
+  }, [initialSection]);
 
   const handleOpen = () => {
     onOpen?.();
     // Cerrar sidebar solo en mobile
     if (isMobile) {
       setOpenMobile(false);
+      setShowContent(true); 
     }
   };
 
@@ -49,7 +55,7 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
 
   const handleBack = () => {
     setShowContent(false);
-    setSelectedSection("");
+    // No reiniciamos selectedSection para mantener la última selección
   };
 
   const SettingsSidebar = ({ isMobile = false }: { isMobile?: boolean }) => (
@@ -128,9 +134,7 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
                 {selectedSection === "account" && "Configuración de Cuenta"}
                 {selectedSection === "stores" && "Administrar Tiendas"}
               </DialogTitle>
-              <DialogDescription>
-                This action cannot be undone. This will permanently delete your account
-                and remove your data from our servers.
+              <DialogDescription className="m-0 p-0">
               </DialogDescription>
             </DialogHeader>
             {selectedSection === "account" ? <AccountConfig /> : <StoreConfig />}
@@ -159,7 +163,17 @@ export function ButtonConfig({ onOpen }: { onOpen?: () => void }) {
         {showContent ? (
           <MobileContent />
         ) : (
-          <SettingsSidebar isMobile />
+          <>
+            <DrawerHeader>
+              <DrawerTitle>Configuración</DrawerTitle>
+            </DrawerHeader>
+            <SettingsSidebar isMobile />
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button variant="outline">Cerrar</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </>
         )}
       </DrawerContent>
     </Drawer>
