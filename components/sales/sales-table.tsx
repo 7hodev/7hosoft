@@ -15,19 +15,12 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { SaleStatus } from "@/lib/services/sales.service";
 import { useState, useEffect } from "react";
-import { Product, ProductsService } from "@/lib/services/products.service";
-import { SoldProduct } from "@/lib/services/sold_products.service";
 import { ChevronDown, ChevronRight } from "lucide-react";
-
-type SaleProductDetails = {
-  product: Product;
-  soldProduct: SoldProduct;
-};
 
 export function SalesTable() {
   const { sales, customers, employees, selectedStore, getStatusDisplay, getSaleProducts } = useDb();
   const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
-  const [saleProducts, setSaleProducts] = useState<Record<string, SaleProductDetails[]>>({});
+  const [saleProducts, setSaleProducts] = useState<Record<string, any[]>>({});
   const [loadingSaleProducts, setLoadingSaleProducts] = useState<Record<string, boolean>>({});
 
   const getCustomerName = (customerId: string) => {
@@ -38,50 +31,31 @@ export function SalesTable() {
     return employees.find(e => e.id === employeeId)?.name || "N/A";
   };
 
-  // Función para formatear precios de manera segura
   const formatPrice = (price: number | null | undefined): string => {
-    if (price === null || price === undefined) return "$0.00";
-    return `$${Number(price).toFixed(2)}`;
-  };
-
-  // Función para calcular subtotal de manera segura
-  const calculateSubtotal = (price: number | null | undefined, quantity: number | null | undefined): string => {
-    if (!price || !quantity) return "$0.00";
-    return `$${(Number(price) * Number(quantity)).toFixed(2)}`;
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Number(price || 0));
   };
 
   const toggleSaleExpanded = async (saleId: string) => {
     const newExpandedState = !expandedSales[saleId];
     setExpandedSales(prev => ({ ...prev, [saleId]: newExpandedState }));
     
-    // Si estamos expandiendo y no tenemos los productos cargados, los cargamos
     if (newExpandedState && !saleProducts[saleId]) {
-      loadSaleProducts(saleId);
+      setLoadingSaleProducts(prev => ({ ...prev, [saleId]: true }));
+      try {
+        const products = await getSaleProducts(saleId);
+        setSaleProducts(prev => ({ ...prev, [saleId]: products }));
+      } catch (error) {
+        console.error("Error cargando productos:", error);
+      } finally {
+        setLoadingSaleProducts(prev => ({ ...prev, [saleId]: false }));
+      }
     }
   };
-
-  const loadSaleProducts = async (saleId: string) => {
-    if (loadingSaleProducts[saleId]) return;
-    
-    setLoadingSaleProducts(prev => ({ ...prev, [saleId]: true }));
-    
-    try {
-      const products = await getSaleProducts(saleId);
-      console.log('Productos cargados para venta', saleId, products);
-      setSaleProducts(prev => ({ ...prev, [saleId]: products }));
-    } catch (error) {
-      console.error("Error cargando productos de la venta:", error);
-    } finally {
-      setLoadingSaleProducts(prev => ({ ...prev, [saleId]: false }));
-    }
-  };
-
-  // Debug: Mostrar en consola cuando cambia el estado de los productos
-  useEffect(() => {
-    Object.entries(saleProducts).forEach(([saleId, products]) => {
-      console.log(`Productos para venta ${saleId}:`, products);
-    });
-  }, [saleProducts]);
 
   if (!selectedStore) return null;
 
@@ -108,7 +82,7 @@ export function SalesTable() {
             {sales
               .filter(sale => sale.store_id === selectedStore.id)
               .map((sale) => (
-                <React.Fragment key={`sale-group-${sale.id}`}>
+                <React.Fragment key={sale.id}>
                   <TableRow 
                     className="cursor-pointer hover:bg-gray-50" 
                     onClick={() => toggleSaleExpanded(sale.id)}
@@ -119,7 +93,11 @@ export function SalesTable() {
                     <TableCell>
                       {(() => {
                         const status = getStatusDisplay(sale.status as SaleStatus);
-                        return <span className={status.className}>{status.text}</span>;
+                        return (
+                          <span className={`font-medium rounded-full px-2 py-1 ${status.className}`}>
+                            {status.text}
+                          </span>
+                        );
                       })()}
                     </TableCell>
                     <TableCell>{getCustomerName(sale.customer_id)}</TableCell>
@@ -131,42 +109,53 @@ export function SalesTable() {
                   </TableRow>
                   
                   {expandedSales[sale.id] && (
-                    <TableRow key={`sale-details-${sale.id}`}>
+                    <TableRow key={`details-${sale.id}`}>
                       <TableCell colSpan={6} className="p-0">
                         <div className="bg-gray-50 px-4 py-2">
-                          <h4 className="font-medium mb-2">Productos</h4>
-                          
+                          <h4 className="font-medium mb-2">Productos vendidos</h4>
                           {loadingSaleProducts[sale.id] ? (
                             <div className="text-center py-2">Cargando productos...</div>
-                          ) : saleProducts[sale.id]?.length ? (
+                          ) : saleProducts[sale.id]?.length > 0 ? (
                             <Table>
                               <TableHeader>
                                 <TableRow>
                                   <TableHead>Producto</TableHead>
-                                  <TableHead>Cantidad</TableHead>
-                                  <TableHead>Precio Unitario</TableHead>
-                                  <TableHead>Subtotal</TableHead>
+                                  <TableHead className="text-right">Cantidad</TableHead>
+                                  <TableHead className="text-right">Precio Unitario</TableHead>
+                                  <TableHead className="text-right">Subtotal</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {saleProducts[sale.id].map(({ product, soldProduct }) => {
-                                  // Usar el precio del producto si el precio de soldProduct es 0 o nulo
-                                  const price = soldProduct?.price || product?.price || 0;
-                                  const quantity = soldProduct?.quantity || 0;
-                                  
+                                  const price = Number(soldProduct.price) || 0;
+                                  const quantity = Number(soldProduct.quantity) || 0;
+                                  const subtotal = price * quantity;
+
                                   return (
-                                    <TableRow key={`sold-product-${soldProduct.id}`}>
-                                      <TableCell>{product?.name || "Producto desconocido"}</TableCell>
-                                      <TableCell>{quantity}</TableCell>
-                                      <TableCell>{formatPrice(price)}</TableCell>
-                                      <TableCell>{calculateSubtotal(price, quantity)}</TableCell>
+                                    <TableRow key={soldProduct.id}>
+                                      <TableCell>{product?.name || "Producto no encontrado"}</TableCell>
+                                      <TableCell className="text-right">{quantity}</TableCell>
+                                      <TableCell className="text-right">{formatPrice(price)}</TableCell>
+                                      <TableCell className="text-right font-medium">
+                                        {formatPrice(subtotal)}
+                                      </TableCell>
                                     </TableRow>
                                   );
                                 })}
+                                <TableRow>
+                                  <TableCell colSpan={3} className="text-right font-medium">
+                                    Total general
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium text-green-600">
+                                    {formatPrice(sale.total_amount)}
+                                  </TableCell>
+                                </TableRow>
                               </TableBody>
                             </Table>
                           ) : (
-                            <div className="text-center py-2 text-gray-500">No hay productos registrados para esta venta</div>
+                            <div className="text-center py-2 text-gray-500">
+                              No se encontraron productos registrados
+                            </div>
                           )}
                         </div>
                       </TableCell>
