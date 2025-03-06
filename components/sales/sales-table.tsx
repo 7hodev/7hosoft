@@ -3,6 +3,7 @@
 import React from "react";
 import { useDb } from "@/providers/db-provider";
 import { SalesCreateDialog } from "@/components/sales/sales-create-dialog";
+import { SalesEditDialog } from "@/components/sales/sales-edit-dialog";
 import {
   Table,
   TableBody,
@@ -11,51 +12,78 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CardTitle } from "../ui/card";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { SaleStatus } from "@/lib/services/sales.service";
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { Badge } from "@/components/ui/badge";
 
 export function SalesTable() {
   const { sales, customers, employees, selectedStore, getStatusDisplay, getSaleProducts } = useDb();
-  const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
-  const [saleProducts, setSaleProducts] = useState<Record<string, any[]>>({});
+  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [displaySaleProducts, setDisplaySaleProducts] = useState<Record<string, { product: any; soldProduct: any }[]>>({});
   const [loadingSaleProducts, setLoadingSaleProducts] = useState<Record<string, boolean>>({});
+  
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const getCustomerName = (customerId: string) => {
-    return customers.find(c => c.id === customerId)?.name || "N/A";
+    const customer = customers.find(c => c.id === customerId);
+    return customer ? customer.name : "Cliente desconocido";
   };
 
   const getEmployeeName = (employeeId: string) => {
-    return employees.find(e => e.id === employeeId)?.name || "N/A";
+    const employee = employees.find(e => e.id === employeeId);
+    return employee ? employee.name : "Empleado desconocido";
   };
 
   const formatPrice = (price: number | null | undefined): string => {
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(Number(price || 0));
+    if (price === null || price === undefined) return "$0.00";
+    return `$${price.toFixed(2)}`;
   };
 
-  const toggleSaleExpanded = async (saleId: string) => {
-    const newExpandedState = !expandedSales[saleId];
-    setExpandedSales(prev => ({ ...prev, [saleId]: newExpandedState }));
-    
-    if (newExpandedState && !saleProducts[saleId]) {
+  const handleRowClick = async (saleId: string) => {
+    // Solo necesitamos cargar los productos la primera vez
+    if (!displaySaleProducts[saleId]) {
       setLoadingSaleProducts(prev => ({ ...prev, [saleId]: true }));
       try {
         const products = await getSaleProducts(saleId);
-        setSaleProducts(prev => ({ ...prev, [saleId]: products }));
+        setDisplaySaleProducts(prev => ({ ...prev, [saleId]: products }));
       } catch (error) {
         console.error("Error cargando productos:", error);
       } finally {
         setLoadingSaleProducts(prev => ({ ...prev, [saleId]: false }));
       }
     }
+    
+    // Abrir el diálogo de edición
+    setEditingSaleId(saleId);
+    setIsEditDialogOpen(true);
   };
+
+  useEffect(() => {
+    // Precargar productos para mejorar la experiencia de usuario
+    const loadInitialProducts = async () => {
+      if (sales.length > 0) {
+        for (const sale of sales.slice(0, 5)) { // Solo precargamos los primeros 5 para no sobrecargar
+          if (!displaySaleProducts[sale.id]) {
+            try {
+              const products = await getSaleProducts(sale.id);
+              setDisplaySaleProducts(prev => ({ ...prev, [sale.id]: products }));
+            } catch (error) {
+              console.error(`Error precargando productos para venta ${sale.id}:`, error);
+            }
+          }
+        }
+      }
+    };
+    
+    loadInitialProducts();
+  }, [sales, getSaleProducts]);
 
   if (!selectedStore) return null;
 
@@ -70,102 +98,91 @@ export function SalesTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10"></TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>Productos</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Monto</TableHead>
-              <TableHead>Empleado</TableHead>
+              <TableHead>Estado</TableHead>
               <TableHead>Fecha</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sales
-              .filter(sale => sale.store_id === selectedStore.id)
-              .map((sale) => (
-                <React.Fragment key={sale.id}>
-                  <TableRow 
-                    className="cursor-pointer hover:bg-gray-50" 
-                    onClick={() => toggleSaleExpanded(sale.id)}
-                  >
-                    <TableCell className="p-2">
-                      {expandedSales[sale.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const status = getStatusDisplay(sale.status as SaleStatus);
-                        return (
-                          <span className={`font-medium rounded-full px-2 py-1 ${status.className}`}>
-                            {status.text}
+            {sales.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                  No hay ventas registradas
+                </TableCell>
+              </TableRow>
+            ) : (
+              sales.map(sale => (
+                <TableRow 
+                  key={sale.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleRowClick(sale.id)}
+                >
+                  <TableCell>
+                    {loadingSaleProducts[sale.id] ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                        <span className="text-sm text-muted-foreground">Cargando...</span>
+                      </div>
+                    ) : displaySaleProducts[sale.id]?.length > 0 ? (
+                      <div className="space-y-1">
+                        {displaySaleProducts[sale.id].slice(0, 2).map(({ product, soldProduct }) => (
+                          <div key={soldProduct.id} className="text-sm">
+                            <span className="font-medium">{product.name}</span>
+                            <span className="text-muted-foreground"> x {soldProduct.quantity}</span>
+                          </div>
+                        ))}
+                        {displaySaleProducts[sale.id].length > 2 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{displaySaleProducts[sale.id].length - 2} más
                           </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>{getCustomerName(sale.customer_id)}</TableCell>
-                    <TableCell>{formatPrice(sale.total_amount)}</TableCell>
-                    <TableCell>{getEmployeeName(sale.employee_id)}</TableCell>
-                    <TableCell>
-                      {format(new Date(sale.sale_date), "HH:mm - dd/MM/yyyy", { locale: es })}
-                    </TableCell>
-                  </TableRow>
-                  
-                  {expandedSales[sale.id] && (
-                    <TableRow key={`details-${sale.id}`}>
-                      <TableCell colSpan={6} className="p-0">
-                        <div className="bg-gray-50 px-4 py-2">
-                          <h4 className="font-medium mb-2">Productos vendidos</h4>
-                          {loadingSaleProducts[sale.id] ? (
-                            <div className="text-center py-2">Cargando productos...</div>
-                          ) : saleProducts[sale.id]?.length > 0 ? (
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Producto</TableHead>
-                                  <TableHead className="text-right">Cantidad</TableHead>
-                                  <TableHead className="text-right">Precio Unitario</TableHead>
-                                  <TableHead className="text-right">Subtotal</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {saleProducts[sale.id].map(({ product, soldProduct }) => {
-                                  const price = Number(soldProduct.price) || 0;
-                                  const quantity = Number(soldProduct.quantity) || 0;
-                                  const subtotal = price * quantity;
-
-                                  return (
-                                    <TableRow key={soldProduct.id}>
-                                      <TableCell>{product?.name || "Producto no encontrado"}</TableCell>
-                                      <TableCell className="text-right">{quantity}</TableCell>
-                                      <TableCell className="text-right">{formatPrice(price)}</TableCell>
-                                      <TableCell className="text-right font-medium">
-                                        {formatPrice(subtotal)}
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                })}
-                                <TableRow>
-                                  <TableCell colSpan={3} className="text-right font-medium">
-                                    Total general
-                                  </TableCell>
-                                  <TableCell className="text-right font-medium text-green-600">
-                                    {formatPrice(sale.total_amount)}
-                                  </TableCell>
-                                </TableRow>
-                              </TableBody>
-                            </Table>
-                          ) : (
-                            <div className="text-center py-2 text-gray-500">
-                              No se encontraron productos registrados
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </React.Fragment>
-              ))}
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Cargando productos...</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{getCustomerName(sale.customer_id)}</TableCell>
+                  <TableCell className="font-medium">{formatPrice(sale.total_amount)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={`${
+                        sale.status === "completed"
+                          ? "bg-green-100 text-green-700"
+                          : sale.status === "canceled"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {sale.status === "completed"
+                        ? "Completada"
+                        : sale.status === "canceled"
+                        ? "Cancelada"
+                        : "Pendiente"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(sale.sale_date).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
+      
+      {editingSaleId && (
+        <SalesEditDialog 
+          saleId={editingSaleId}
+          isOpen={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) setEditingSaleId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

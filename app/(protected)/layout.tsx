@@ -26,6 +26,7 @@ import { DbProvider } from "@/providers/db-provider";
 import { useSidebar } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/sidebar/team-switcher";
 import { BottomNav } from "@/components/sidebar/nav-responsive";
+import { Toaster } from "@/components/ui/sonner"
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isMobile } = useSidebar();
@@ -91,6 +92,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       </header>
       <div className="flex-1 overflow-auto overscroll-none">
         <div className="flex flex-1 flex-col gap-2 p-2 md:p-5">{children}</div>
+        <Toaster />
       </div>
     </SidebarInset>
   );

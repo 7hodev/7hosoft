@@ -26,6 +26,7 @@ type AppData = {
   refreshData: () => Promise<void>;
   setSelectedStore: (store: any) => Promise<void>;
   createSale: (saleData: any) => Promise<void>;
+  updateSale: (saleId: string, updatedData: any) => Promise<void>;
   getStatusDisplay: (status: SaleStatus) => StatusDisplayInfo;
   getSaleProducts: (saleId: string) => Promise<{ product: Product; soldProduct: SoldProduct }[]>;
 };
@@ -44,6 +45,7 @@ const DbContext = createContext<AppData>({
   refreshData: async () => {},
   setSelectedStore: async () => {},
   createSale: async () => {},
+  updateSale: async () => {},
   getStatusDisplay: () => ({ text: "", className: "" }),
   getSaleProducts: async () => [],
 });
@@ -143,10 +145,20 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const getSaleProducts = async (saleId: string) => {
+    try {
+      return await SalesService.getSaleProducts(saleId);
+    } catch (error) {
+      console.error("Error obteniendo productos:", error);
+      return [];
+    }
+  };
+
   const handleCreateSale = async (saleData: any) => {
     try {
-      await SalesService.createSale(saleData);
+      const newSale = await SalesService.createSale(saleData);
       await loadSalesForStore(selectedStore.id);
+      return newSale;
     } catch (error) {
       console.error("Error en DbProvider al crear venta:", error);
       if (error instanceof Error) {
@@ -157,37 +169,18 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getSaleProducts = async (saleId: string) => {
+  const handleUpdateSale = async (saleId: string, updatedData: any) => {
     try {
-      // 1. Obtener productos vendidos
-      const soldProductsData = await SoldProductsService.getSaleProducts(saleId);
-      
-      // 2. Obtener detalles de productos
-      const productIds = soldProductsData.map(sp => sp.product_id);
-      const productsData = await ProductsService.getProductsByIds(productIds);
-  
-      // 3. Combinar datos
-      return soldProductsData.map(soldProduct => {
-        const product = productsData.find(p => p.id === soldProduct.product_id) || {
-          id: soldProduct.product_id,
-          name: "Producto no encontrado",
-          price: 0,
-          stock: 0,
-          store_id: selectedStore.id
-        };
-        
-        return {
-          soldProduct: {
-            ...soldProduct,
-            price: soldProduct.price || product.price // Usar precio de producto si es necesario
-          },
-          product
-        };
-      });
-      
+      const result = await SalesService.updateSale(saleId, updatedData);
+      await loadSalesForStore(selectedStore.id);
+      return result;
     } catch (error) {
-      console.error("Error obteniendo productos:", error);
-      return [];
+      console.error("Error en DbProvider al actualizar venta:", error);
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("Error desconocido al actualizar la venta");
+      }
     }
   };
 
@@ -220,6 +213,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         refreshData: loadAllData,
         setSelectedStore: persistStoreSelection,
         createSale: handleCreateSale,
+        updateSale: handleUpdateSale,
         getStatusDisplay: SalesService.getStatusDisplay,
         getSaleProducts
       }}

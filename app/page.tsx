@@ -28,7 +28,7 @@ export default function Home() {
           />
         </div>
         <div className="relative z-10 flex min-h-[80vh] items-center justify-center">
-          <div className="container px-4 md:px-6">
+          <div className="container px-6 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none max-w-3xl mx-auto">

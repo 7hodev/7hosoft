@@ -2,6 +2,7 @@
 
 import { useDb } from "@/providers/db-provider";
 import { SalesTable } from "@/components/sales/sales-table";
+import SalesStadistic from "@/components/sales/sales-stadistic";
 
 export default function SalesPage() {
   const { stores, loading } = useDb();
@@ -11,6 +12,7 @@ export default function SalesPage() {
 
   return (
     <div className="p-8">
+      <SalesStadistic />
       <SalesTable />
     </div>
   );

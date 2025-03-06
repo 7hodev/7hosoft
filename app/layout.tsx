@@ -33,7 +33,7 @@ export default function RootLayout({
         />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       </head>
-      <body className="text-foreground flex justify-center items-center min-h-screen p-0 m-0">
+      <body className="text-foreground flex justify-center items-center min-h-screen">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

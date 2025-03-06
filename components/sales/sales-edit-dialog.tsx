@@ -6,7 +6,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog";
@@ -29,27 +28,24 @@ import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
-interface SalesCreateDialogProps {
-  // Si editSaleId tiene valor, estamos en modo edición
-  editSaleId?: string;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
+interface SalesEditDialogProps {
+  saleId: string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCreateDialogProps) {
+export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialogProps) {
   const {
     selectedStore,
     customers,
     employees,
     products,
     sales,
-    createSale,
     updateSale,
     refreshData,
     getSaleProducts
   } = useDb();
 
-  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     customer_id: "",
     employee_id: "",
@@ -66,34 +62,16 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   const [customerDisplayName, setCustomerDisplayName] = useState("Selecciona un cliente");
   const [employeeDisplayName, setEmployeeDisplayName] = useState("Selecciona un empleado");
 
-  // Determinar si estamos en modo edición
-  const isEditMode = Boolean(editSaleId);
-
   const isDesktop = useMediaQuery("(min-width: 768px)");
-
-  // Manejar cambios en el estado open controlado externamente
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setOpen(isOpen);
-    }
-  }, [isOpen]);
-
-  // Propagar cambios en el estado open al controlador externo
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (onOpenChange) {
-      onOpenChange(newOpen);
-    }
-  };
 
   // Cargar datos de la venta en modo edición
   useEffect(() => {
     const loadSaleData = async () => {
-      if (editSaleId && open) {
+      if (saleId && isOpen) {
         setLoadingInitialData(true);
         try {
           // Buscar la venta por ID
-          const sale = sales.find(sale => sale.id === editSaleId);
+          const sale = sales.find(sale => sale.id === saleId);
           if (!sale) {
             toast.error("No se encontró la venta para editar");
             return;
@@ -115,7 +93,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
           if (employee) setEmployeeDisplayName(employee.name);
           
           // Cargar productos de la venta
-          const saleProducts = await getSaleProducts(editSaleId);
+          const saleProducts = await getSaleProducts(saleId);
           
           // Convertir a formato para el formulario
           const formattedProducts = saleProducts.map(({ product, soldProduct }) => ({
@@ -130,16 +108,11 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
         } finally {
           setLoadingInitialData(false);
         }
-      } else {
-        // Resetear el formulario cuando se abre para una nueva venta
-        if (open && !editSaleId) {
-          resetForm();
-        }
       }
     };
     
     loadSaleData();
-  }, [editSaleId, open, sales, customers, employees, getSaleProducts]);
+  }, [saleId, isOpen, sales, customers, employees, getSaleProducts]);
 
   // Actualizar nombres cuando cambian las selecciones
   useEffect(() => {
@@ -174,7 +147,18 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     return statusMap[selectedStatus] || 'Selecciona un estado';
   };
 
-  // Funciones para manejar productos
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  const totalAmount = selectedProducts.reduce((acc, product) => {
+    const quantity = typeof product.quantity === 'string' ?
+      (product.quantity === '' ? 0 : parseInt(product.quantity)) :
+      product.quantity;
+    return acc + (product.price * (quantity || 0));
+  }, 0);
+
   const handleProductSelect = (product: Product) => {
     // Evitar duplicados
     if (selectedProducts.some(p => p.id === product.id)) {
@@ -201,6 +185,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
             setShowStockWarning(null);
           }
           
+          // Importante: devolver un objeto que extiende Product correctamente
           return { ...product, quantity: numValue };
         }
         return product;
@@ -215,27 +200,6 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     }
   };
 
-  // Resetear el formulario a valores predeterminados
-  const resetForm = () => {
-    setFormData({ customer_id: "", employee_id: "" });
-    setSelectedProducts([]);
-    setSelectedStatus('pending');
-    setCustomerDisplayName("Selecciona un cliente");
-    setEmployeeDisplayName("Selecciona un empleado");
-  };
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  const totalAmount = selectedProducts.reduce((acc, product) => {
-    const quantity = typeof product.quantity === 'string' ?
-      (product.quantity === '' ? 0 : parseInt(product.quantity)) :
-      product.quantity;
-    return acc + (product.price * (quantity || 0));
-  }, 0);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -243,82 +207,56 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     // Validar campos requeridos
     if (!selectedStore || !formData.customer_id || !formData.employee_id) {
       setError('Por favor selecciona una tienda, cliente y empleado');
+      toast.error('Por favor completa todos los campos requeridos');
       return;
     }
 
-    // Validar productos
+    // Validar que haya productos seleccionados
     if (selectedProducts.length === 0) {
-      setError('Debes seleccionar al menos un producto');
+      setError('Por favor selecciona al menos un producto');
+      toast.error('Por favor selecciona al menos un producto');
       return;
     }
 
-    // Validar cantidades
-    const productsWithInvalidQuantity = selectedProducts.filter(p => {
-      if (typeof p.quantity === 'string') {
-        return !p.quantity || p.quantity === '';
-      }
-      return !p.quantity || p.quantity <= 0;
+    // Validar que todas las cantidades sean válidas
+    const invalidProduct = selectedProducts.find(product => {
+      const quantity = typeof product.quantity === 'string' 
+        ? (product.quantity === '' ? 0 : parseInt(product.quantity))
+        : product.quantity;
+      return quantity <= 0;
     });
 
-    if (productsWithInvalidQuantity.length > 0) {
-      setError(`Los siguientes productos tienen cantidades inválidas: ${productsWithInvalidQuantity.map(p => p.name).join(', ')}`);
+    if (invalidProduct) {
+      setError(`La cantidad para ${invalidProduct.name} debe ser mayor a cero`);
+      toast.error('Las cantidades deben ser mayores a cero');
       return;
     }
 
-    // Convertir cantidades a números para validación de stock
-    const productsWithNumericQuantity = selectedProducts.map(p => ({
-      ...p,
-      quantity: typeof p.quantity === 'string' ? parseInt(p.quantity) || 0 : p.quantity
-    }));
-
-    // Validar stock
-    const stockValidation = productsWithNumericQuantity.find(p => p.quantity > p.stock);
-    if (stockValidation) {
-      setError(`No hay suficiente stock para "${stockValidation.name}". Solo hay ${stockValidation.stock} unidades disponibles.`);
-      return;
-    }
+    // Preparar datos para actualizar
+    const saleData = {
+      customer_id: formData.customer_id,
+      employee_id: formData.employee_id,
+      status: selectedStatus,
+      total_amount: totalAmount,
+      products: selectedProducts.map(product => ({
+        id: product.id,
+        quantity: typeof product.quantity === 'string' 
+          ? parseInt(product.quantity) 
+          : product.quantity
+      }))
+    };
 
     setLoading(true);
-
+    
     try {
-      // Asegurarnos que solo enviamos estados válidos (pending/completed)
-      // Si en el futuro la base de datos soporta 'canceled', solo elimina esta validación
-      const validStatus: SaleStatus = selectedStatus === 'canceled' ? 'pending' : selectedStatus;
-
-      // Los datos comunes para crear o actualizar
-      const saleData = {
-        store_id: selectedStore.id,
-        customer_id: formData.customer_id,
-        employee_id: formData.employee_id,
-        sale_date: new Date().toISOString(),
-        status: validStatus,
-        total_amount: totalAmount,
-        products: productsWithNumericQuantity.map(p => ({
-          id: p.id,
-          quantity: p.quantity
-        }))
-      };
-
-      if (isEditMode && editSaleId) {
-        // Actualizar venta existente
-        await updateSale(editSaleId, saleData);
-        toast.success('Venta actualizada correctamente');
-      } else {
-        // Crear nueva venta
-        await createSale(saleData);
-        toast.success('Venta creada correctamente');
-      }
-      
-      // Resetear formulario
-      resetForm();
-      handleOpenChange(false);
-      refreshData();
+      await updateSale(saleId, saleData);
+      toast.success('Venta actualizada con éxito');
+      onOpenChange(false);
+      await refreshData();
     } catch (err) {
-      console.error("Error en SalesCreateDialog:", err);
-      let errorMessage = isEditMode 
-        ? 'Error al actualizar la venta' 
-        : 'Error al crear la venta';
+      console.error("Error al actualizar venta:", err);
       
+      let errorMessage = "Error al actualizar la venta";
       if (err instanceof Error) {
         errorMessage = err.message;
       }
@@ -333,7 +271,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   if (!mounted) return null;
 
   const FormContent = (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[calc(90vh-8rem)]">
       <div className="flex-1 overflow-y-auto px-6 py-2">
         <div className="space-y-4">
           {/* Cliente y Empleado */}
@@ -480,11 +418,11 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
         </div>
       </div>
     
-      <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
+      <DialogFooter className="px-6 py-4 border-t">
         <Button 
           type="button" 
           variant="outline" 
-          onClick={() => handleOpenChange(false)}
+          onClick={() => onOpenChange(false)}
           disabled={loading}
         >
           Cancelar
@@ -499,10 +437,10 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
               <span>Guardando...</span>
             </div>
           ) : (
-            isEditMode ? 'Guardar cambios' : 'Crear venta'
+            'Guardar cambios'
           )}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 
@@ -521,22 +459,14 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   // Componente responsivo - Desktop usa Dialog, Mobile/Tablet usa Drawer
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        {!isEditMode && (
-          <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Nueva Venta</Button>
-          </DialogTrigger>
-        )}
-        
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-y-auto">
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle className="text-xl">
-              {isEditMode ? `Editar Venta #${editSaleId && typeof editSaleId === 'string' ? editSaleId.slice(-4) : ''}` : `Registrar nueva Venta de ${selectedStore?.name}`}
+              Editar Venta #{saleId && typeof saleId === 'string' ? saleId.slice(-4) : ''}
             </DialogTitle>
             <DialogDescription>
-              {isEditMode 
-                ? "Modifica la información de la venta" 
-                : "Completa el formulario para registrar una nueva venta"}
+              Modifica la información de la venta
             </DialogDescription>
           </DialogHeader>
           
@@ -546,17 +476,11 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     );
   } else {
     return (
-      <Drawer open={open} onOpenChange={handleOpenChange}>
-        {!isEditMode && (
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => handleOpenChange(true)}>
-            Nueva Venta
-          </Button>
-        )}
-        
+      <Drawer open={isOpen} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader>
             <DrawerTitle className="text-xl">
-              {isEditMode ? `Editar Venta #${editSaleId && typeof editSaleId === 'string' ? editSaleId.slice(-4) : ''}` : `Registrar nueva Venta de ${selectedStore?.name}`}
+              Editar Venta #{saleId && typeof saleId === 'string' ? saleId.slice(-4) : ''}
             </DrawerTitle>
           </DrawerHeader>
           
@@ -565,4 +489,4 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
       </Drawer>
     );
   }
-}
+} 
