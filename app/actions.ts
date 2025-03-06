@@ -139,3 +139,18 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+export const signInWithGoogleAction = async () => {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    },
+  });
+  if (error) {
+    console.error(error.message);
+    return encodedRedirect("error", "/sign-in", error.message);
+  }
+  return redirect("/dashboard");
+};
