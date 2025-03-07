@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { SmtpMessage } from "../smtp-message";
+import GoogleSignInButton from "@/components/auth/google-sign-in-button";
 
 export default async function Signup(props: {
   searchParams: Promise<Message>;
@@ -41,7 +42,7 @@ export default async function Signup(props: {
               </Link>
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           <form className="flex flex-col min-w-64">
             <div className="flex flex-col gap-2 [&>input]:mb-3 mt-3">
               <Label htmlFor="display_name">Username</Label>
@@ -65,12 +66,13 @@ export default async function Signup(props: {
             Sign up
           </SubmitButton>
           </form>
+          <GoogleSignInButton />
         </CardContent>
         <CardFooter className="flex justify-between">
           <FormMessage message={searchParams} />
         </CardFooter>
       </Card>
-      <SmtpMessage />
+      {/* <SmtpMessage /> */}
     </div>
   );
 }

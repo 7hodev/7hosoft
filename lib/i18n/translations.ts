@@ -5,7 +5,7 @@ export const translations = {
         pricing: "Precios",
         contact: "Contacto",
         signin: "Iniciar Sesión",
-        signup: "Registrarse",
+        signup: "Empezar Ahora",
       },
       hero: {
         title: "Gestiona tu negocio de manera inteligente",
@@ -98,7 +98,7 @@ export const translations = {
         pricing: "Pricing",
         contact: "Contact",
         signin: "Sign In",
-        signup: "Sign Up",
+        signup: "Get Started",
       },
       hero: {
         title: "Smart Business Management",
