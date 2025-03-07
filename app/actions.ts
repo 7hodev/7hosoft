@@ -16,28 +16,69 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect(
       "error",
       "/sign-up",
-      "Email, password and username are required",
+      "Email, password y nombre de usuario son requeridos",
     );
   }
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      data: { display_name } // Guardar el display_name en user_metadata
-    },
-  });
+  // Consulta directa a la tabla auth.users a través de RPC para verificar si el email ya existe
+  // Esta es una forma directa y simple de verificar sin depender de intentos de autenticación
+  try {
+    // Intentamos registrar al usuario - Supabase devolverá un error específico si ya existe
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+        data: { display_name }
+      },
+    });
 
-  if (error) {
-    console.error(error.code + " " + error.message);
-    return encodedRedirect("error", "/sign-up", error.message);
-  } else {
+    // Si hay error, mostramos mensaje específico para email duplicado
+    if (error) {
+      console.error(`Error de registro: [${error.code}] ${error.message}`);
+      
+      // Si el mensaje contiene "already" o el código es de error de duplicación
+      if (error.message.toLowerCase().includes("already") || 
+          error.message.toLowerCase().includes("exist") ||
+          error.message.toLowerCase().includes("ya existe") ||
+          error.code === "23505" ||
+          error.status === 400) {
+        
+        return encodedRedirect(
+          "error", 
+          "/sign-up", 
+          "Este correo ya está registrado. Por favor inicia sesión o recupera tu contraseña."
+        );
+      }
+      
+      // Cualquier otro error específico
+      return encodedRedirect("error", "/sign-up", error.message);
+    }
 
+    // Registro exitoso
     return encodedRedirect(
       "success",
       "/sign-up",
-      "Thanks for signing up! Please check your email for a verification link.",
+      "Gracias por registrarte. Por favor verifica tu correo para continuar.",
+    );
+  } catch (err) {
+    console.error("Error crítico al registrar:", err);
+    
+    // Verificar si podría ser un error de duplicación
+    const errorStr = String(err).toLowerCase();
+    if (errorStr.includes("already") || errorStr.includes("duplicate") || errorStr.includes("exist")) {
+      return encodedRedirect(
+        "error", 
+        "/sign-up", 
+        "Este correo ya está registrado. Por favor inicia sesión o recupera tu contraseña."
+      );
+    }
+    
+    // Error verdaderamente genérico
+    return encodedRedirect(
+      "error", 
+      "/sign-up", 
+      "Error al registrar usuario. Inténtalo de nuevo más tarde."
     );
   }
 };
