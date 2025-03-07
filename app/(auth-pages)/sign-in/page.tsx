@@ -1,5 +1,3 @@
-"use server";
-
 import Link from "next/link";
 import { signInAction } from "@/app/actions";
 import { FormMessage, Message } from "@/components/form-message";
@@ -14,9 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Building2, Lock, Mail } from "lucide-react";
+import { Building2, Mail } from "lucide-react";
 import GoogleSignInButton from "@/components/auth/google-sign-in-button";
-
+import PasswordInput from "@/components/password-input";
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
 
@@ -24,10 +22,12 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
     <div className="min-h-screen w-full flex">
       {/* Left side - Form */}
       <div className="w-full lg:w-2/5 flex items-center justify-center p-8">
-        <div className="flex items-center gap-2 mb-4 fixed top-10 left-10">
-          <Building2 className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">7hoSoft</span>
-        </div>
+        <Link href="/">
+          <div className="flex items-center gap-2 mb-4 fixed top-10 left-10">
+            <Building2 className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold">7hoSoft</span>
+          </div>
+        </Link>
         <Card className="w-full max-w-md border-none shadow-none">
           <form action={signInAction}>
             <CardHeader className="space-y-2">
@@ -64,17 +64,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    className="pl-10"
-                    id="password"
-                    type="password"
-                    name="password"
-                    placeholder="Tu contraseña"
-                    required
-                  />
-                </div>
+                <PasswordInput />
               </div>
               <div className="flex items-center justify-between">
                 <Link
@@ -87,7 +77,12 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
               <FormMessage message={searchParams} />
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-              <SubmitButton className="w-full" pendingText="Iniciando sesión...">Iniciar sesión</SubmitButton>
+              <SubmitButton
+                className="w-full"
+                pendingText="Iniciando sesión..."
+              >
+                Iniciar sesión
+              </SubmitButton>
               <p className="text-center text-sm text-muted-foreground">
                 ¿No tienes una cuenta?{" "}
                 <Link href="/sign-up" className="text-primary hover:underline">
