@@ -49,8 +49,7 @@ export default async function Signup(props: {
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8">
       <Link href="/">
           <div className="flex items-center gap-2 mb-4 lg:fixed lg:top-10 lg:left-10">
-            
-            <span className="text-4xl lg:text-2xl font-bold drop-shadow-lg">7hoSoft</span>
+            <span className="text-4xl lg:text-2xl font-bold drop-shadow-lg text-white">7hoSoft</span>
           </div>
         </Link>
         <Card className="w-full max-w-md border-none shadow-none">

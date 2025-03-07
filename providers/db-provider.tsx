@@ -70,7 +70,17 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await UserSettingsService.upsertLastStore(user.id, store.id);
+      let currentUser = user;
+      if (!currentUser) {
+        currentUser = await UsersService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        } else {
+          throw new Error("No se pudo obtener el usuario actual");
+        }
+      }
+      
+      await UserSettingsService.upsertLastStore(currentUser.id, store.id);
       localStorage.setItem("selectedStore", JSON.stringify(store));
       setSelectedStore(store);
     } catch (error) {
@@ -107,7 +117,18 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      const user = await UsersService.getCurrentUser();
+      let user = null;
+      let retries = 0;
+      while (!user && retries < 3) {
+        user = await UsersService.getCurrentUser();
+        if (!user) {
+          retries++;
+          if (retries < 3) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+      
       setUser(user);
 
       if (user) {
@@ -162,7 +183,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error en DbProvider al crear venta:", error);
       if (error instanceof Error) {
-        throw error; // Mantener el error original si es una instancia de Error
+        throw error;
       } else {
         throw new Error("Error desconocido al crear la venta");
       }

@@ -6,132 +6,111 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/format";
 
 export default function SalesStadistic() {
-  const { sales, selectedStore } = useDb();
+  const { sales } = useDb();
   const [statistics, setStatistics] = useState({
-    daily: { amount: 0, percentage: 0 },
-    weekly: { amount: 0, percentage: 0 },
-    monthly: { amount: 0, percentage: 0 },
+    daily: { amount: 0, previousAmount: 0, percentage: 0 },
+    weekly: { amount: 0, previousAmount: 0, percentage: 0 },
+    monthly: { amount: 0, previousAmount: 0, percentage: 0 },
     pending: { count: 0 }
   });
 
   useEffect(() => {
-    // Solo proceder si hay ventas disponibles
-    if (!sales || !Array.isArray(sales) || sales.length === 0) {
-      return;
+    if (!sales || !Array.isArray(sales) || sales.length === 0) return;
+
+    const getLocalStartOfDay = (date: Date): Date => {
+      const localDate = new Date(date);
+      localDate.setHours(0, 0, 0, 0);
+      return localDate;
+    };
+
+    const clientNow = new Date();
+    const today = getLocalStartOfDay(clientNow);
+    
+    // Período actual
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Períodos anteriores
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const lastWeekStart = new Date(startOfWeek);
+    lastWeekStart.setDate(startOfWeek.getDate() - 7);
+    const lastWeekEnd = new Date(startOfWeek);
+    lastWeekEnd.setDate(startOfWeek.getDate() - 1);
+
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+
+    let dailyAmount = 0;
+    let weeklyAmount = 0;
+    let monthlyAmount = 0;
+    let yesterdayAmount = 0;
+    let lastWeekAmount = 0;
+    let lastMonthAmount = 0;
+    const pendingSales = [];
+
+    for (const sale of sales) {
+      const saleDateUTC = new Date(sale.sale_date);
+      const saleDateLocal = getLocalStartOfDay(saleDateUTC);
+      const amount = Number(sale.total_amount) || 0;
+
+      if (sale.status === "completed") {
+        // Período actual
+        if (saleDateLocal.getTime() === today.getTime()) dailyAmount += amount;
+        if (saleDateLocal >= startOfWeek && saleDateLocal <= today) weeklyAmount += amount;
+        if (saleDateLocal >= startOfMonth && saleDateLocal <= today) monthlyAmount += amount;
+
+        // Períodos anteriores
+        if (saleDateLocal.getTime() === yesterday.getTime()) yesterdayAmount += amount;
+        if (saleDateLocal >= lastWeekStart && saleDateLocal <= lastWeekEnd) lastWeekAmount += amount;
+        if (saleDateLocal >= lastMonthStart && saleDateLocal <= lastMonthEnd) lastMonthAmount += amount;
+      } else {
+        pendingSales.push(sale);
+      }
     }
 
-    // Imprimir ventas para depuración
-    console.log("VENTAS DISPONIBLES:", sales);
-    
-    // Obtener todas las ventas completadas y pendientes
-    const completedSales = sales.filter(sale => sale.status === "completed");
-    const pendingSales = sales.filter(sale => sale.status === "pending");
-
-    console.log("Completadas:", completedSales);
-    console.log("Pendientes:", pendingSales);
-
-    // FECHAS DE REFERENCIA
-    const now = new Date();
-    
-    // Convertir a formato "YYYY-MM-DD" (sin hora) para comparaciones exactas
-    const formatDateString = (date: Date): string => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    // Calcular porcentajes
+    const calculatePercentage = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Number(((current - previous) / previous * 100).toFixed(1));
     };
-    
-    const todayString = formatDateString(now);
-    
-    // VENTAS DIARIAS - Ventas completadas de hoy
-    const todaySales = completedSales.filter(sale => {
-      // Extraer solo la parte de fecha (YYYY-MM-DD) de la fecha de venta
-      const saleDate = sale.sale_date.split('T')[0];
-      return saleDate === todayString;
-    });
-    
-    console.log("Ventas de hoy:", todaySales);
-    
-    // Calcular total de ventas de hoy
-    let dailyAmount = 0;
-    todaySales.forEach(sale => {
-      // Asegurar que total_amount sea un número
-      const amount = typeof sale.total_amount === 'string' 
-        ? parseFloat(sale.total_amount) 
-        : Number(sale.total_amount || 0);
-      
-      if (!isNaN(amount)) {
-        dailyAmount += amount;
-      }
-    });
-    
-    console.log("Monto diario:", dailyAmount);
-    
-    // VENTAS SEMANALES
-    // Obtener el día de la semana (0-6, donde 0 es domingo)
-    const dayOfWeek = now.getDay();
-    
-    // Crear fecha para el primer día de la semana actual (domingo)
-    const startOfWeekDate = new Date(now);
-    startOfWeekDate.setDate(now.getDate() - dayOfWeek);
-    const startOfWeekString = formatDateString(startOfWeekDate);
-    
-    // Ventas de esta semana
-    const weeklySales = completedSales.filter(sale => {
-      const saleDate = sale.sale_date.split('T')[0];
-      return saleDate >= startOfWeekString && saleDate <= todayString;
-    });
-    
-    // Calcular total de ventas de esta semana
-    let weeklyAmount = 0;
-    weeklySales.forEach(sale => {
-      const amount = typeof sale.total_amount === 'string' 
-        ? parseFloat(sale.total_amount) 
-        : Number(sale.total_amount || 0);
-      
-      if (!isNaN(amount)) {
-        weeklyAmount += amount;
-      }
-    });
-    
-    console.log("Monto semanal:", weeklyAmount);
-    
-    // VENTAS MENSUALES
-    // Crear fecha para el primer día del mes actual
-    const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfMonthString = formatDateString(startOfMonthDate);
-    
-    // Ventas de este mes
-    const monthlySales = completedSales.filter(sale => {
-      const saleDate = sale.sale_date.split('T')[0];
-      return saleDate >= startOfMonthString && saleDate <= todayString;
-    });
-    
-    // Calcular total de ventas de este mes
-    let monthlyAmount = 0;
-    monthlySales.forEach(sale => {
-      const amount = typeof sale.total_amount === 'string' 
-        ? parseFloat(sale.total_amount) 
-        : Number(sale.total_amount || 0);
-      
-      if (!isNaN(amount)) {
-        monthlyAmount += amount;
-      }
-    });
-    
-    console.log("Monto mensual:", monthlyAmount);
-    
-    // Actualizar estadísticas
+
     setStatistics({
-      daily: { amount: dailyAmount, percentage: 0 },
-      weekly: { amount: weeklyAmount, percentage: 0 },
-      monthly: { amount: monthlyAmount, percentage: 0 },
+      daily: {
+        amount: dailyAmount,
+        previousAmount: yesterdayAmount,
+        percentage: calculatePercentage(dailyAmount, yesterdayAmount)
+      },
+      weekly: {
+        amount: weeklyAmount,
+        previousAmount: lastWeekAmount,
+        percentage: calculatePercentage(weeklyAmount, lastWeekAmount)
+      },
+      monthly: {
+        amount: monthlyAmount,
+        previousAmount: lastMonthAmount,
+        percentage: calculatePercentage(monthlyAmount, lastMonthAmount)
+      },
       pending: { count: pendingSales.length }
     });
-    
+
   }, [sales]);
 
-  // Renderizar el componente
+  const getPercentageColor = (percentage: number): string => {
+    if (percentage > 0) return "text-green-600";
+    if (percentage < 0) return "text-red-600";
+    return "text-muted-foreground";
+  };
+
+  const formatComparisonText = (percentage: number, period: string): string => {
+    const absPercentage = Math.abs(percentage);
+    const direction = percentage > 0 ? "↑" : percentage < 0 ? "↓" : "";
+    return `${direction} ${absPercentage}%`;
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
@@ -140,8 +119,8 @@ export default function SalesStadistic() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(statistics.daily.amount)}</div>
-          <p className="text-xs text-muted-foreground">
-            +0.0% respecto a ayer
+          <p className={`text-xs ${getPercentageColor(statistics.daily.percentage)}`}>
+            {formatComparisonText(statistics.daily.percentage, "día anterior")}
           </p>
         </CardContent>
       </Card>
@@ -151,8 +130,8 @@ export default function SalesStadistic() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(statistics.weekly.amount)}</div>
-          <p className="text-xs text-muted-foreground">
-            +0.0% respecto a semana pasada
+          <p className={`text-xs ${getPercentageColor(statistics.weekly.percentage)}`}>
+            {formatComparisonText(statistics.weekly.percentage, "semana pasada")}
           </p>
         </CardContent>
       </Card>
@@ -162,8 +141,8 @@ export default function SalesStadistic() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(statistics.monthly.amount)}</div>
-          <p className="text-xs text-muted-foreground">
-            +0.0% respecto a mes pasado
+          <p className={`text-xs ${getPercentageColor(statistics.monthly.percentage)}`}>
+            {formatComparisonText(statistics.monthly.percentage, "mes pasado")}
           </p>
         </CardContent>
       </Card>
@@ -179,5 +158,3 @@ export default function SalesStadistic() {
     </div>
   );
 }
-
-

@@ -38,7 +38,7 @@ export const SalesService = {
           store_id: saleData.store_id,
           customer_id: saleData.customer_id,
           employee_id: saleData.employee_id,
-          sale_date: saleData.sale_date,
+          sale_date: new Date().toISOString(),
           status: saleData.status,
           total_amount: saleData.total_amount
         })

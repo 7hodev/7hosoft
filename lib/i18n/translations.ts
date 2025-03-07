@@ -57,7 +57,7 @@ export const translations = {
         },
         users: {
           value: "💬",
-          label: "Equipo Conectado",
+          label: "Tu Negocio Conectado",
         },
         support: {
           value: "⚡",
@@ -142,15 +142,15 @@ export const translations = {
       stats: {
         companies: {
           value: "+1000",
-          label: "Your Business, Always Under Control",
+          label: "Your Business, Always in Control",
         },
         uptime: {
           value: "99.9%",
-          label: "Information at a Glance",
+          label: "Insights at a Glance",
         },
         users: {
           value: "+50000",
-          label: "Connected Team",
+          label: "Your Business Connected",
         },
         support: {
           value: "24/7",

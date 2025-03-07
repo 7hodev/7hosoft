@@ -98,7 +98,7 @@ export default function Home() {
                 <div className="flex h-[180px] flex-col justify-between rounded-md p-6">
                   <div className="h-10 w-10 text-primary">{icon}</div>
                   <div className="space-y-2">
-                    <h3 className="font-bold">
+                    <h3 className="text-lg font-bold">
                       {
                         t.features.items[key as keyof typeof t.features.items]
                           .title
@@ -123,26 +123,26 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-4">
             <div className="flex flex-col items-center justify-center space-y-2 gap-4">
-              <Rocket className="w-12 h-12" />
-              <h4 className="text-lg text-center font-bold">
+              <Rocket className="lg:w-12 lg:h-12 w-10 h-10" />
+              <h4 className="lg:text-lg text-sm text-center font-bold">
                 {t.stats.companies.label}
               </h4>
             </div>
             <div className="flex flex-col items-center justify-center space-y-2 gap-4">
-              <ChartSpline className="w-12 h-12" />
-              <h4 className="text-lg text-center font-bold">
+              <ChartSpline className="lg:w-12 lg:h-12 w-10 h-10" />
+              <h4 className="lg:text-lg text-sm text-center font-bold">
                 {t.stats.uptime.label}
               </h4>
             </div>
             <div className="flex flex-col items-center justify-center space-y-2 gap-4">
-              <MessagesSquare className="w-12 h-12" />
-              <h4 className="text-lg text-center font-bold">
+              <MessagesSquare className="lg:w-12 lg:h-12 w-10 h-10" />
+              <h4 className="lg:text-lg text-sm text-center font-bold">
                 {t.stats.users.label}
               </h4>
             </div>
             <div className="flex flex-col items-center justify-center space-y-2 gap-4">
-              <Zap className="w-12 h-12" />
-              <h4 className="text-lg text-center font-bold">
+              <Zap className="lg:w-12 lg:h-12 w-10 h-10" />
+              <h4 className="lg:text-lg text-sm text-center font-bold">
                 {t.stats.support.label}
               </h4>
             </div>
