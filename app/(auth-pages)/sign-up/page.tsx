@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Building2, User, Mail, Lock, Building } from "lucide-react";
+import { Building2, User, Mail } from "lucide-react";
 import { SmtpMessage } from "../smtp-message";
 import GoogleSignInButton from "@/components/auth/google-sign-in-button";
 import PasswordInput from "@/components/password-input";
@@ -46,18 +46,18 @@ export default async function Signup(props: {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <Link href="/">
-          <div className="flex items-center gap-2 mb-4 fixed top-10 left-10">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">7hoSoft</span>
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8">
+      <Link href="/">
+          <div className="flex items-center gap-2 mb-4 lg:fixed lg:top-10 lg:left-10">
+            
+            <span className="text-4xl lg:text-2xl font-bold drop-shadow-lg">7hoSoft</span>
           </div>
         </Link>
         <Card className="w-full max-w-md border-none shadow-none">
           <form action={signUpAction}>
-          <CardHeader className="space-y-2">
+          <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-3xl font-bold">Crear cuenta</CardTitle>
-            <CardDescription>
+            <CardDescription >
               Comienza a gestionar tu negocio de manera profesional
             </CardDescription>
           </CardHeader>

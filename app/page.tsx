@@ -1,17 +1,28 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, Building2, Clock, DollarSign, Users2, Warehouse } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  Building2,
+  ChartSpline,
+  Clock,
+  DollarSign,
+  Users2,
+  Warehouse,
+  Zap,
+  Rocket,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { createContext, useState } from "react";
 import { SiteHeader } from "@/components/home/site-header";
 import { type Language, translations } from "@/lib/i18n/translations";
+import { MessagesSquare } from "lucide-react";
 
 export default function Home() {
-
   const [language, setLanguage] = useState<Language>("en");
-    const t = translations[language];
+  const t = translations[language];
 
   return (
     <main className="flex-1">
@@ -34,7 +45,9 @@ export default function Home() {
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none max-w-3xl mx-auto">
                   {t.hero.title}
                 </h1>
-                <p className="max-w-[600px] md:text-xl mx-auto">{t.hero.subtitle}</p>
+                <p className="max-w-[600px] md:text-xl mx-auto">
+                  {t.hero.subtitle}
+                </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <Button asChild size="lg" className="w-full min-[400px]:w-auto">
@@ -61,8 +74,12 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">{t.features.title}</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl">{t.features.subtitle}</p>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+                {t.features.title}
+              </h2>
+              <p className="max-w-[900px] text-muted-foreground md:text-xl">
+                {t.features.subtitle}
+              </p>
             </div>
           </div>
           <div className="mx-auto grid max-w-5xl gap-6 py-12 lg:grid-cols-3">
@@ -74,12 +91,25 @@ export default function Home() {
               { icon: <BarChart3 />, key: "analytics" },
               { icon: <Building2 />, key: "multistore" },
             ].map(({ icon, key }) => (
-              <div key={key} className="relative overflow-hidden rounded-lg border bg-card p-2">
+              <div
+                key={key}
+                className="relative overflow-hidden rounded-lg border bg-card p-2"
+              >
                 <div className="flex h-[180px] flex-col justify-between rounded-md p-6">
                   <div className="h-10 w-10 text-primary">{icon}</div>
                   <div className="space-y-2">
-                    <h3 className="font-bold">{t.features.items[key as keyof typeof t.features.items].title}</h3>
-                    <p className="text-sm text-muted-foreground">{t.features.items[key as keyof typeof t.features.items].description}</p>
+                    <h3 className="font-bold">
+                      {
+                        t.features.items[key as keyof typeof t.features.items]
+                          .title
+                      }
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {
+                        t.features.items[key as keyof typeof t.features.items]
+                          .description
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
@@ -92,12 +122,30 @@ export default function Home() {
       <section className="w-full py-12 md:py-24 lg:py-32 bg-background dark:bg-background">
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-4">
-            {Object.entries(t.stats).map(([key, stat]: [string, any]) => (
-              <div key={key} className="flex flex-col items-center justify-center space-y-2">
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
+            <div className="flex flex-col items-center justify-center space-y-2 gap-4">
+              <Rocket className="w-12 h-12" />
+              <h4 className="text-lg text-center font-bold">
+                {t.stats.companies.label}
+              </h4>
+            </div>
+            <div className="flex flex-col items-center justify-center space-y-2 gap-4">
+              <ChartSpline className="w-12 h-12" />
+              <h4 className="text-lg text-center font-bold">
+                {t.stats.uptime.label}
+              </h4>
+            </div>
+            <div className="flex flex-col items-center justify-center space-y-2 gap-4">
+              <MessagesSquare className="w-12 h-12" />
+              <h4 className="text-lg text-center font-bold">
+                {t.stats.users.label}
+              </h4>
+            </div>
+            <div className="flex flex-col items-center justify-center space-y-2 gap-4">
+              <Zap className="w-12 h-12" />
+              <h4 className="text-lg text-center font-bold">
+                {t.stats.support.label}
+              </h4>
+            </div>
           </div>
         </div>
       </section>
@@ -107,8 +155,12 @@ export default function Home() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">{t.cta.title}</h2>
-              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl">{t.cta.subtitle}</p>
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+                {t.cta.title}
+              </h2>
+              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl">
+                {t.cta.subtitle}
+              </p>
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
               <Button asChild size="lg">
@@ -124,4 +176,3 @@ export default function Home() {
     </main>
   );
 }
-

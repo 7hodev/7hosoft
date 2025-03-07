@@ -21,16 +21,16 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
   return (
     <div className="min-h-screen w-full flex">
       {/* Left side - Form */}
-      <div className="w-full lg:w-2/5 flex items-center justify-center p-8">
+      <div className="w-full lg:w-2/5 flex flex-col items-center justify-center p-8">
         <Link href="/">
-          <div className="flex items-center gap-2 mb-4 fixed top-10 left-10">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">7hoSoft</span>
+          <div className="flex items-center gap-2 mb-4 lg:fixed lg:top-10 lg:left-10">
+            
+            <span className="text-4xl lg:text-2xl font-bold drop-shadow-lg">7hoSoft</span>
           </div>
         </Link>
         <Card className="w-full max-w-md border-none shadow-none">
           <form action={signInAction}>
-            <CardHeader className="space-y-2">
+            <CardHeader className="space-y-2 text-center">
               <CardTitle className="text-3xl font-bold">¡Bienvenido!</CardTitle>
               <CardDescription>
                 Ingresa a tu cuenta para gestionar tu negocio
@@ -44,7 +44,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    O continúa con
+                    O
                   </span>
                 </div>
               </div>

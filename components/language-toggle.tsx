@@ -23,7 +23,9 @@ export default function LanguageToggle() {
   };
 
   return (
-    <Button onClick={toggleLanguage} variant="outline">
+    <Button onClick={toggleLanguage} variant="outline"
+    className="bg-yellow-400"
+    >
       {locale === "en" ? "🇪🇸 Español" : "🇺🇸 English"}
     </Button>
   );

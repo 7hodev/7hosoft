@@ -28,7 +28,6 @@ export function SiteHeader({ language, onLanguageChange, t }: SiteHeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center space-x-2">
-          <Building2 className="h-6 w-6" />
           <span className="font-bold">7hoSoft</span>
         </Link>
         <NavigationMenu className="hidden lg:flex lg:ml-6">
@@ -73,59 +72,18 @@ export function SiteHeader({ language, onLanguageChange, t }: SiteHeaderProps) {
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          <LanguageSwitcher language={language} onChange={onLanguageChange} />
-          <ThemeToggle />
-          <div className="hidden lg:flex lg:items-center lg:space-x-4">
-            <Button variant="ghost" asChild>
+        <div className="flex flex-1 items-center justify-end gap-4">
+          <div className="flex items-center space-x-4">
+            <LanguageSwitcher language={language} onChange={onLanguageChange} />
+            <ThemeToggle />
+          </div>
+          <div className="flex :items-center space-x-4">
+            <Button variant="ghost" className="bg-black text-white dark:bg-white dark:text-black lg:bg-white lg:text-black dark:lg:bg-black dark:lg:text-white hover:bg-secondary/90" asChild>
               <Link href="/sign-in">{t.nav.signin}</Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="hidden lg:block">
               <Link href="/sign-up">{t.nav.signup}</Link>
             </Button>
-          </div>
-          <div className="lg:hidden">
-            <Button
-              variant="default"
-              asChild
-              className="fixed top-3 right-4 z-50"
-            >
-              <Link href="/sign-in">{t.nav.signin}</Link>
-            </Button>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="ml-2">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle navigation menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right">
-                <div className="grid gap-4 py-4">
-                  <LanguageSwitcher
-                    language={language}
-                    onChange={onLanguageChange}
-                  />
-                  <Link
-                    href="#caracteristicas"
-                    className="text-sm font-medium leading-none"
-                  >
-                    {t.nav.features}
-                  </Link>
-                  <Link
-                    href="#precios"
-                    className="text-sm font-medium leading-none"
-                  >
-                    {t.nav.pricing}
-                  </Link>
-                  <Link
-                    href="#contacto"
-                    className="text-sm font-medium leading-none"
-                  >
-                    {t.nav.contact}
-                  </Link>
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
         </div>
       </div>

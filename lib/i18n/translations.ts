@@ -12,7 +12,7 @@ export const translations = {
         subtitle:
           "7hoSoft es la solución completa para la gestión de tu empresa. Accede desde cualquier dispositivo, en cualquier momento y lugar.",
         cta: {
-          try: "Prueba Gratis 14 días",
+          try: "Comienza ahora",
           demo: "Ver Demo",
         },
       },
@@ -48,20 +48,20 @@ export const translations = {
       },
       stats: {
         companies: {
-          value: "+1000",
-          label: "Empresas Confían en Nosotros",
+          value: "🚀",
+          label: "Tu Negocio, Siempre Bajo Control",
         },
         uptime: {
-          value: "99.9%",
-          label: "Tiempo de Actividad",
+          value: "📊",
+          label: "Información en un Vistazo",
         },
         users: {
-          value: "+50000",
-          label: "Usuarios Activos",
+          value: "💬",
+          label: "Equipo Conectado",
         },
         support: {
-          value: "24/7",
-          label: "Soporte Técnico",
+          value: "⚡",
+          label: "Optimiza tu Productividad",
         },
       },
       cta: {
@@ -105,7 +105,7 @@ export const translations = {
         subtitle:
           "7hoSoft is the complete solution for your business management. Access from any device, anytime, anywhere.",
         cta: {
-          try: "Try Free 14 Days",
+          try: "Start Now",
           demo: "Watch Demo",
         },
       },
@@ -142,19 +142,19 @@ export const translations = {
       stats: {
         companies: {
           value: "+1000",
-          label: "Companies Trust Us",
+          label: "Your Business, Always Under Control",
         },
         uptime: {
           value: "99.9%",
-          label: "Uptime",
+          label: "Information at a Glance",
         },
         users: {
           value: "+50000",
-          label: "Active Users",
+          label: "Connected Team",
         },
         support: {
           value: "24/7",
-          label: "Technical Support",
+          label: "Optimize your Productivity",
         },
       },
       cta: {

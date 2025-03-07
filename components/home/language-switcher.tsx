@@ -22,7 +22,7 @@ export function LanguageSwitcher({ language, onChange }: LanguageSwitcherProps) 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button className="h-8 w-8" variant="ghost" size="icon">
           <Globe className="h-5 w-5" />
           <span className="sr-only">Toggle language</span>
         </Button>
