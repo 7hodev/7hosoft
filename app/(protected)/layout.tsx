@@ -53,7 +53,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarInset className="flex-1 flex flex-col h-full overflow-hidden">
-      <header className="flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 z-10 bg-background">
+      <header className="border-b flex h-12 md:h-16 shrink-0 justify-between items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 z-10 bg-background">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="hidden md:flex mx-auto items-center justify-center" />
           <Separator orientation="vertical" className="mr-2 h-4" />

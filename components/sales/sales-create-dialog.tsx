@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogDescription
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,16 +17,22 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import { useDb } from "@/providers/db-provider";
 import { useEffect, useState } from "react";
 import { SaleStatus } from "@/lib/services/sales.service";
-import { Product } from '@/lib/services/products.service';
+import { Product } from "@/lib/services/products.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+} from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface SalesCreateDialogProps {
@@ -36,7 +42,11 @@ interface SalesCreateDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCreateDialogProps) {
+export function SalesCreateDialog({
+  editSaleId,
+  isOpen,
+  onOpenChange,
+}: SalesCreateDialogProps) {
   const {
     selectedStore,
     customers,
@@ -46,7 +56,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     createSale,
     updateSale,
     refreshData,
-    getSaleProducts
+    getSaleProducts,
   } = useDb();
 
   const [open, setOpen] = useState(false);
@@ -54,17 +64,26 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     customer_id: "",
     employee_id: "",
   });
-  const [selectedStatus, setSelectedStatus] = useState<SaleStatus>('pending');
-  const [selectedProducts, setSelectedProducts] = useState<Array<Product & { quantity: number | string }>>([]);
+  const [selectedStatus, setSelectedStatus] = useState<SaleStatus>("pending");
+  const [selectedProducts, setSelectedProducts] = useState<
+    Array<Product & { quantity: number | string }>
+  >([]);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingInitialData, setLoadingInitialData] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showStockWarning, setShowStockWarning] = useState<{ productId: string, warning: string } | null>(null);
+  const [showStockWarning, setShowStockWarning] = useState<{
+    productId: string;
+    warning: string;
+  } | null>(null);
 
   // Nombres para mostrar en selects
-  const [customerDisplayName, setCustomerDisplayName] = useState("Selecciona un cliente");
-  const [employeeDisplayName, setEmployeeDisplayName] = useState("Selecciona un empleado");
+  const [customerDisplayName, setCustomerDisplayName] = useState(
+    "Selecciona un cliente"
+  );
+  const [employeeDisplayName, setEmployeeDisplayName] = useState(
+    "Selecciona un empleado"
+  );
 
   // Determinar si estamos en modo edición
   const isEditMode = Boolean(editSaleId);
@@ -93,7 +112,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
         setLoadingInitialData(true);
         try {
           // Buscar la venta por ID
-          const sale = sales.find(sale => sale.id === editSaleId);
+          const sale = sales.find((sale) => sale.id === editSaleId);
           if (!sale) {
             toast.error("No se encontró la venta para editar");
             return;
@@ -104,25 +123,27 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
             customer_id: sale.customer_id,
             employee_id: sale.employee_id,
           });
-          
+
           setSelectedStatus(sale.status as SaleStatus);
-          
+
           // Actualizar nombres para mostrar
-          const customer = customers.find(c => c.id === sale.customer_id);
+          const customer = customers.find((c) => c.id === sale.customer_id);
           if (customer) setCustomerDisplayName(customer.name);
-          
-          const employee = employees.find(e => e.id === sale.employee_id);
+
+          const employee = employees.find((e) => e.id === sale.employee_id);
           if (employee) setEmployeeDisplayName(employee.name);
-          
+
           // Cargar productos de la venta
           const saleProducts = await getSaleProducts(editSaleId);
-          
+
           // Convertir a formato para el formulario
-          const formattedProducts = saleProducts.map(({ product, soldProduct }) => ({
-            ...product,
-            quantity: soldProduct.quantity
-          }));
-          
+          const formattedProducts = saleProducts.map(
+            ({ product, soldProduct }) => ({
+              ...product,
+              quantity: soldProduct.quantity,
+            })
+          );
+
           setSelectedProducts(formattedProducts);
         } catch (error) {
           console.error("Error al cargar datos de la venta:", error);
@@ -137,14 +158,14 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
         }
       }
     };
-    
+
     loadSaleData();
   }, [editSaleId, open, sales, customers, employees, getSaleProducts]);
 
   // Actualizar nombres cuando cambian las selecciones
   useEffect(() => {
     if (formData.customer_id) {
-      const customer = customers.find(c => c.id === formData.customer_id);
+      const customer = customers.find((c) => c.id === formData.customer_id);
       if (customer) {
         setCustomerDisplayName(customer.name);
       }
@@ -155,7 +176,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
 
   useEffect(() => {
     if (formData.employee_id) {
-      const employee = employees.find(e => e.id === formData.employee_id);
+      const employee = employees.find((e) => e.id === formData.employee_id);
       if (employee) {
         setEmployeeDisplayName(employee.name);
       }
@@ -167,17 +188,17 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   // Obtener el texto del estado seleccionado
   const getStatusText = () => {
     const statusMap = {
-      'pending': 'Pendiente',
-      'completed': 'Completada',
-      'canceled': 'Cancelada'
+      pending: "Pendiente",
+      completed: "Completada",
+      canceled: "Cancelada",
     };
-    return statusMap[selectedStatus] || 'Selecciona un estado';
+    return statusMap[selectedStatus] || "Selecciona un estado";
   };
 
   // Funciones para manejar productos
   const handleProductSelect = (product: Product) => {
     // Evitar duplicados
-    if (selectedProducts.some(p => p.id === product.id)) {
+    if (selectedProducts.some((p) => p.id === product.id)) {
       return;
     }
 
@@ -185,22 +206,22 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   };
 
   const handleQuantityChange = (productId: string, value: string) => {
-    const numValue = value === '' ? '' : parseInt(value);
-    
+    const numValue = value === "" ? "" : parseInt(value);
+
     // Actualizar la cantidad del producto
-    setSelectedProducts(prevProducts => {
-      return prevProducts.map(product => {
+    setSelectedProducts((prevProducts) => {
+      return prevProducts.map((product) => {
         if (product.id === productId) {
           // Verificar si hay suficiente stock
-          if (typeof numValue === 'number' && numValue > product.stock) {
+          if (typeof numValue === "number" && numValue > product.stock) {
             setShowStockWarning({
               productId,
-              warning: `Solo hay ${product.stock} unidades disponibles`
+              warning: `Solo hay ${product.stock} unidades disponibles`,
             });
           } else {
             setShowStockWarning(null);
           }
-          
+
           return { ...product, quantity: numValue };
         }
         return product;
@@ -209,7 +230,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   };
 
   const removeProduct = (productId: string) => {
-    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+    setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
     if (showStockWarning?.productId === productId) {
       setShowStockWarning(null);
     }
@@ -219,7 +240,7 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   const resetForm = () => {
     setFormData({ customer_id: "", employee_id: "" });
     setSelectedProducts([]);
-    setSelectedStatus('pending');
+    setSelectedStatus("pending");
     setCustomerDisplayName("Selecciona un cliente");
     setEmployeeDisplayName("Selecciona un empleado");
   };
@@ -230,10 +251,13 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
   }, []);
 
   const totalAmount = selectedProducts.reduce((acc, product) => {
-    const quantity = typeof product.quantity === 'string' ?
-      (product.quantity === '' ? 0 : parseInt(product.quantity)) :
-      product.quantity;
-    return acc + (product.price * (quantity || 0));
+    const quantity =
+      typeof product.quantity === "string"
+        ? product.quantity === ""
+          ? 0
+          : parseInt(product.quantity)
+        : product.quantity;
+    return acc + product.price * (quantity || 0);
   }, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,39 +266,46 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
 
     // Validar campos requeridos
     if (!selectedStore || !formData.customer_id || !formData.employee_id) {
-      setError('Por favor selecciona una tienda, cliente y empleado');
+      setError("Por favor selecciona un cliente y empleado");
       return;
     }
 
     // Validar productos
     if (selectedProducts.length === 0) {
-      setError('Debes seleccionar al menos un producto');
+      setError("Debes seleccionar al menos un producto");
       return;
     }
 
     // Validar cantidades
-    const productsWithInvalidQuantity = selectedProducts.filter(p => {
-      if (typeof p.quantity === 'string') {
-        return !p.quantity || p.quantity === '';
+    const productsWithInvalidQuantity = selectedProducts.filter((p) => {
+      if (typeof p.quantity === "string") {
+        return !p.quantity || p.quantity === "";
       }
       return !p.quantity || p.quantity <= 0;
     });
 
     if (productsWithInvalidQuantity.length > 0) {
-      setError(`Los siguientes productos tienen cantidades inválidas: ${productsWithInvalidQuantity.map(p => p.name).join(', ')}`);
+      setError(
+        `Los siguientes productos tienen cantidades inválidas: ${productsWithInvalidQuantity.map((p) => p.name).join(", ")}`
+      );
       return;
     }
 
     // Convertir cantidades a números para validación de stock
-    const productsWithNumericQuantity = selectedProducts.map(p => ({
+    const productsWithNumericQuantity = selectedProducts.map((p) => ({
       ...p,
-      quantity: typeof p.quantity === 'string' ? parseInt(p.quantity) || 0 : p.quantity
+      quantity:
+        typeof p.quantity === "string" ? parseInt(p.quantity) || 0 : p.quantity,
     }));
 
     // Validar stock
-    const stockValidation = productsWithNumericQuantity.find(p => p.quantity > p.stock);
+    const stockValidation = productsWithNumericQuantity.find(
+      (p) => p.quantity > p.stock
+    );
     if (stockValidation) {
-      setError(`No hay suficiente stock para "${stockValidation.name}". Solo hay ${stockValidation.stock} unidades disponibles.`);
+      setError(
+        `No hay suficiente stock para "${stockValidation.name}". Solo hay ${stockValidation.stock} unidades disponibles.`
+      );
       return;
     }
 
@@ -283,7 +314,8 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     try {
       // Asegurarnos que solo enviamos estados válidos (pending/completed)
       // Si en el futuro la base de datos soporta 'canceled', solo elimina esta validación
-      const validStatus: SaleStatus = selectedStatus === 'canceled' ? 'pending' : selectedStatus;
+      const validStatus: SaleStatus =
+        selectedStatus === "canceled" ? "pending" : selectedStatus;
 
       // Los datos comunes para crear o actualizar
       const saleData = {
@@ -293,36 +325,36 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
         sale_date: new Date().toISOString(),
         status: validStatus,
         total_amount: totalAmount,
-        products: productsWithNumericQuantity.map(p => ({
+        products: productsWithNumericQuantity.map((p) => ({
           id: p.id,
-          quantity: p.quantity
-        }))
+          quantity: p.quantity,
+        })),
       };
 
       if (isEditMode && editSaleId) {
         // Actualizar venta existente
         await updateSale(editSaleId, saleData);
-        toast.success('Venta actualizada correctamente');
+        toast.success("Venta actualizada correctamente");
       } else {
         // Crear nueva venta
         await createSale(saleData);
-        toast.success('Venta creada correctamente');
+        toast.success("Venta creada correctamente");
       }
-      
+
       // Resetear formulario
       resetForm();
       handleOpenChange(false);
       refreshData();
     } catch (err) {
       console.error("Error en SalesCreateDialog:", err);
-      let errorMessage = isEditMode 
-        ? 'Error al actualizar la venta' 
-        : 'Error al crear la venta';
-      
+      let errorMessage = isEditMode
+        ? "Error al actualizar la venta"
+        : "Error al crear la venta";
+
       if (err instanceof Error) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -334,21 +366,118 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
 
   const FormContent = (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto px-6 py-2">
-        <div className="space-y-4">
-          {/* Cliente y Empleado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+      <div className="px-6 py-2">
+        <div className="flex">
+          {/* Productos */}
+          <div className="w-1/2 flex flex-col gap-2 px-2">
+            {/* Selector de Productos */}
+            <div className="">
+              <Label htmlFor="selectProduct" className="hidden">
+                Añadir producto
+              </Label>
+              <Select
+                onValueChange={(value) => {
+                  const selectedProduct = products.find((p) => p.id === value);
+                  if (selectedProduct) {
+                    handleProductSelect(selectedProduct);
+                  }
+                }}
+              >
+                <SelectTrigger id="selectProduct">
+                  <SelectValue placeholder="Selecciona un producto">
+                    Selecciona un producto
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {products
+                    .filter(
+                      (product) =>
+                        !selectedProducts.some((p) => p.id === product.id)
+                    )
+                    .map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} - ${product.price.toFixed(2)} - Stock:{" "}
+                        {product.stock}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Productos Seleccionados */}
+            <div
+              className={`${selectedProducts.length === 0 ? "flex justify-center items-center" : ""} bg-accent p-2 rounded-md border-2 border-dashed max-h-[237px] min-h-[237px] overflow-y-auto`}
+            >
+              <Label className="hidden">Productos seleccionados</Label>
+              {selectedProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  No hay productos seleccionados
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] pr-1">
+                  {selectedProducts.map((product) => (
+                    <Card key={product.id} className="relative">
+                      <CardContent className="p-4 flex justify-between items-center">
+                        <div className="flex-1">
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Precio: ${product.price.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Stock: {product.stock}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <div className="w-20">
+                            <Input
+                              type="number"
+                              value={product.quantity.toString()}
+                              onChange={(e) =>
+                                handleQuantityChange(product.id, e.target.value)
+                              }
+                              min="1"
+                              className="w-full"
+                            />
+                            {showStockWarning?.productId === product.id && (
+                              <p className="text-xs text-red-500 mt-1">
+                                {showStockWarning.warning}
+                              </p>
+                            )}
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => removeProduct(product.id)}
+                            className="h-10 w-10 p-0"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cliente, Empleado y Estado */}
+          <div className="w-1/2 flex flex-col justify-start gap-4 px-2">
+            <div className="">
               <Label htmlFor="customer">Cliente</Label>
-              <Select 
-                value={formData.customer_id} 
-                onValueChange={(value) => setFormData({...formData, customer_id: value})}
+              <Select
+                value={formData.customer_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, customer_id: value })
+                }
               >
                 <SelectTrigger id="customer">
                   <SelectValue placeholder={customerDisplayName} />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map(customer => (
+                  {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}
                     </SelectItem>
@@ -356,18 +485,20 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
+
+            <div className="">
               <Label htmlFor="employee">Empleado</Label>
-              <Select 
-                value={formData.employee_id} 
-                onValueChange={(value) => setFormData({...formData, employee_id: value})}
+              <Select
+                value={formData.employee_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, employee_id: value })
+                }
               >
                 <SelectTrigger id="employee">
                   <SelectValue placeholder={employeeDisplayName} />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(employee => (
+                  {employees.map((employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {employee.name}
                     </SelectItem>
@@ -375,103 +506,33 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Estado de la venta */}
+            <div className="">
+              <Label htmlFor="status">Estado de la venta</Label>
+              <Select
+                value={selectedStatus}
+                onValueChange={(value: SaleStatus) => setSelectedStatus(value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder={getStatusText()} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="completed">Completada</SelectItem>
+                  <SelectItem value="canceled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-end">
+              <Badge variant="outline" className="text-lg py-2 px-3">
+                Total: ${totalAmount.toFixed(2)}
+              </Badge>
+            </div>
           </div>
-          
-          {/* Estado de la venta */}
-          <div className="space-y-2">
-            <Label htmlFor="status">Estado de la venta</Label>
-            <Select 
-              value={selectedStatus} 
-              onValueChange={(value: SaleStatus) => setSelectedStatus(value)}
-            >
-              <SelectTrigger id="status">
-                <SelectValue placeholder={getStatusText()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="completed">Completada</SelectItem>
-                <SelectItem value="canceled">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Productos Seleccionados */}
-          <div className="space-y-2">
-            <Label>Productos seleccionados</Label>
-            {selectedProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No hay productos seleccionados</p>
-            ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                {selectedProducts.map(product => (
-                  <Card key={product.id} className="relative">
-                    <CardContent className="p-4 flex justify-between items-center">
-                      <div className="flex-1">
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">Precio: ${product.price.toFixed(2)}</p>
-                        <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20">
-                          <Input 
-                            type="number" 
-                            value={product.quantity.toString()} 
-                            onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                            min="1"
-                            className="w-full"
-                          />
-                          {showStockWarning?.productId === product.id && (
-                            <p className="text-xs text-red-500 mt-1">{showStockWarning.warning}</p>
-                          )}
-                        </div>
-                        
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => removeProduct(product.id)}
-                          className="h-10 w-10 p-0"
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Selector de Productos */}
-          <div className="space-y-2">
-            <Label htmlFor="selectProduct">Añadir producto</Label>
-            <Select onValueChange={(value) => {
-              const selectedProduct = products.find(p => p.id === value);
-              if (selectedProduct) {
-                handleProductSelect(selectedProduct);
-              }
-            }}>
-              <SelectTrigger id="selectProduct">
-                <SelectValue placeholder="Selecciona un producto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products
-                  .filter(product => !selectedProducts.some(p => p.id === product.id))
-                  .map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - ${product.price.toFixed(2)} - Stock: {product.stock}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Total */}
-          <div className="pt-4 flex justify-end">
-            <Badge variant="outline" className="text-lg py-2 px-3">
-              Total: ${totalAmount.toFixed(2)}
-            </Badge>
-          </div>
-          
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
               {error}
@@ -479,11 +540,11 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
           )}
         </div>
       </div>
-    
-      <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
-        <Button 
-          type="button" 
-          variant="outline" 
+
+      <DialogFooter className="px-6 py-4 border-t">
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => handleOpenChange(false)}
           disabled={loading}
         >
@@ -492,26 +553,58 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
         <Button type="submit" disabled={loading}>
           {loading ? (
             <div className="flex items-center space-x-2">
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               <span>Guardando...</span>
             </div>
           ) : (
-            isEditMode ? 'Guardar cambios' : 'Crear venta'
+            "Crear venta"
           )}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 
   const LoadingContent = (
     <div className="flex items-center justify-center py-12">
       <div className="flex items-center space-x-2">
-        <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <svg
+          className="animate-spin h-5 w-5 text-blue-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
         </svg>
         <span>Cargando información de la venta...</span>
       </div>
@@ -524,22 +617,26 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
       <Dialog open={open} onOpenChange={handleOpenChange}>
         {!isEditMode && (
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Nueva Venta</Button>
+            <Button size="sm" className="">
+              Nueva Venta
+            </Button>
           </DialogTrigger>
         )}
-        
+
         <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-y-auto">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle className="text-xl">
-              {isEditMode ? `Editar Venta #${editSaleId && typeof editSaleId === 'string' ? editSaleId.slice(-4) : ''}` : `Registrar nueva Venta de ${selectedStore?.name}`}
+              {isEditMode
+                ? `Editar Venta #${editSaleId && typeof editSaleId === "string" ? editSaleId.slice(-4) : ""}`
+                : `Registrar nueva Venta de ${selectedStore?.name}`}
             </DialogTitle>
             <DialogDescription>
-              {isEditMode 
-                ? "Modifica la información de la venta" 
+              {isEditMode
+                ? "Modifica la información de la venta"
                 : "Completa el formulario para registrar una nueva venta"}
             </DialogDescription>
           </DialogHeader>
-          
+
           {loadingInitialData ? LoadingContent : FormContent}
         </DialogContent>
       </Dialog>
@@ -548,18 +645,24 @@ export function SalesCreateDialog({ editSaleId, isOpen, onOpenChange }: SalesCre
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
         {!isEditMode && (
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => handleOpenChange(true)}>
+          <Button
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => handleOpenChange(true)}
+          >
             Nueva Venta
           </Button>
         )}
-        
+
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader>
             <DrawerTitle className="text-xl">
-              {isEditMode ? `Editar Venta #${editSaleId && typeof editSaleId === 'string' ? editSaleId.slice(-4) : ''}` : `Registrar nueva Venta de ${selectedStore?.name}`}
+              {isEditMode
+                ? `Editar Venta #${editSaleId && typeof editSaleId === "string" ? editSaleId.slice(-4) : ""}`
+                : `Registrar nueva Venta de ${selectedStore?.name}`}
             </DrawerTitle>
           </DrawerHeader>
-          
+
           {loadingInitialData ? LoadingContent : FormContent}
         </DrawerContent>
       </Drawer>

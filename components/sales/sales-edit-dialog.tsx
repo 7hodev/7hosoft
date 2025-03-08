@@ -272,7 +272,7 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
 
   const FormContent = (
     <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[calc(90vh-8rem)]">
-      <div className="flex-1 overflow-y-auto px-6 py-2">
+      <div className="bg-orange-300 flex-1 overflow-y-auto px-6 py-2">
         <div className="space-y-4">
           {/* Cliente y Empleado */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -332,6 +332,30 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
               </SelectContent>
             </Select>
           </div>
+
+          {/* Selector de Productos */}
+          <div className="space-y-2">
+            <Label htmlFor="selectProduct">Añadir producto</Label>
+            <Select onValueChange={(value) => {
+              const selectedProduct = products.find(p => p.id === value);
+              if (selectedProduct) {
+                handleProductSelect(selectedProduct);
+              }
+            }}>
+              <SelectTrigger id="selectProduct">
+                <SelectValue placeholder="Selecciona un producto" />
+              </SelectTrigger>
+              <SelectContent>
+                {products
+                  .filter(product => !selectedProducts.some(p => p.id === product.id))
+                  .map(product => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name} - ${product.price.toFixed(2)} - Stock: {product.stock}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           {/* Productos Seleccionados */}
           <div className="space-y-2">
@@ -377,30 +401,6 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
                 ))}
               </div>
             )}
-          </div>
-          
-          {/* Selector de Productos */}
-          <div className="space-y-2">
-            <Label htmlFor="selectProduct">Añadir producto</Label>
-            <Select onValueChange={(value) => {
-              const selectedProduct = products.find(p => p.id === value);
-              if (selectedProduct) {
-                handleProductSelect(selectedProduct);
-              }
-            }}>
-              <SelectTrigger id="selectProduct">
-                <SelectValue placeholder="Selecciona un producto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products
-                  .filter(product => !selectedProducts.some(p => p.id === product.id))
-                  .map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - ${product.price.toFixed(2)} - Stock: {product.stock}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
           </div>
           
           {/* Total */}
