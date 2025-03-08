@@ -33,29 +33,29 @@ export default async function Signup(props: {
     <div className="min-h-screen w-full flex">
       {/* Left side - Image and Text */}
       <div className="hidden lg:flex w-3/5 bg-gradient-to-br from-primary/90 to-primary dark:from-secondary/90 dark:to-secondary p-8 items-center justify-center relative overflow-hidden">
-        <div className="relative z-10 text-white max-w-lg">
+        <div className="relative z-10 text-slate-50 max-w-lg">
           <h2 className="text-4xl font-bold mb-6">
             Todo lo que necesitas para tu negocio
           </h2>
-          <p className="text-lg opacity-90">
+          <p className="text-lg">
             Una suite completa de herramientas diseñada para hacer crecer tu
             negocio. Únete a miles de empresas que ya confían en 7hoSoft.
           </p>
         </div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')] opacity-10 bg-cover bg-center" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')] opacity-70 bg-cover bg-center" />
       </div>
 
       {/* Right side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8">
       <Link href="/">
           <div className="flex items-center gap-2 mb-4 lg:fixed lg:top-10 lg:left-10">
-            <span className="text-4xl lg:text-2xl font-bold drop-shadow-lg text-white">7hoSoft</span>
+            <span className="text-4xl lg:text-2xl font-bold drop-shadow-lg lg:text-white">7hoSoft</span>
           </div>
         </Link>
         <Card className="w-full max-w-md border-none shadow-none">
           <form action={signUpAction}>
           <CardHeader className="space-y-2 text-center">
-            <CardTitle className="text-3xl font-bold">Crear cuenta</CardTitle>
+            <CardTitle className="text-3xl font-bold">Crea tu cuenta</CardTitle>
             <CardDescription >
               Comienza a gestionar tu negocio de manera profesional
             </CardDescription>
@@ -68,7 +68,7 @@ export default async function Signup(props: {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  O continúa con
+                  O
                 </span>
               </div>
             </div>

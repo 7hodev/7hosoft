@@ -243,7 +243,7 @@ export function SalesTable() {
 
           <Popover open={showFilters} onOpenChange={setShowFilters}>
             <PopoverTrigger asChild>
-              <Button className="gap-1">
+              <Button variant="outline" className="gap-1">
                 <Filter className="h-4 w-4" />
                 Filtros
                 {((filterProduct && filterProduct !== "all") ||
@@ -430,13 +430,12 @@ export function SalesTable() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant="secondary"
                         className={`${
                           sale.status === "completed"
-                            ? "bg-green-100 text-green-700"
+                            ? "bg-green-100 hover:bg-green-200 text-green-700"
                             : sale.status === "canceled"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
+                              ? "bg-red-100 hover:bg-red-200 text-red-700"
+                              : "bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
                         }`}
                       >
                         {sale.status === "completed"

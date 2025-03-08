@@ -7,12 +7,11 @@ export function SmtpMessage() {
       <InfoIcon size={16} className="mt-0.5" />
       <div className="flex flex-col gap-1">
         <small className="text-sm text-secondary-foreground">
-          <strong> Note:</strong> Emails are rate limited. Enable Custom SMTP to
-          increase the rate limit.
+          <strong> Nota:</strong> Nunca compartas tus credenciales de 7hoSoft. Si varias personas necesitan tener acceso a tu cuenta, invítalas como miembros del equipo en configuración.
         </small>
         <div>
           <Link
-            href="https://supabase.com/docs/guides/auth/auth-smtp"
+            href="https://7hosoft.vercel.app"
             target="_blank"
             className="text-primary/50 hover:text-primary flex items-center text-sm gap-1"
           >

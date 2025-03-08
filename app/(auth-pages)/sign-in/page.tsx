@@ -15,6 +15,8 @@ import {
 import { Building2, Mail } from "lucide-react";
 import GoogleSignInButton from "@/components/auth/google-sign-in-button";
 import PasswordInput from "@/components/password-input";
+import { SmtpMessage } from "@/app/(auth-pages)/smtp-message";
+
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
 
@@ -92,6 +94,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
             </CardFooter>
           </form>
         </Card>
+        {/* <SmtpMessage /> */}
       </div>
 
       {/* Right side - Image and Text */}
@@ -105,7 +108,7 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
             Accede desde cualquier dispositivo, en cualquier momento y lugar.
           </p>
         </div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')] opacity-10 bg-cover bg-center" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497215728101-856f4ea42174?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80')] opacity-70 bg-cover bg-center" />
       </div>
     </div>
   );
