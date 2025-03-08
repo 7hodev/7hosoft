@@ -91,7 +91,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="flex-1 overflow-auto overscroll-none">
-        <div className="flex flex-1 flex-col gap-2 p-2 md:p-5">{children}</div>
+        <div className="flex flex-1 flex-col gap-2 p-2 md:p-5 pb-20 lg:pb-0">{children}</div>
         <Toaster />
       </div>
     </SidebarInset>

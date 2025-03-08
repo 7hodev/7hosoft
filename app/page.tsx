@@ -53,13 +53,15 @@ export default function Home() {
                   una sola plataforma.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white w-full sm:w-auto"
-                  >
-                    Comenzar ahora
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
+                  <Link href="/sign-up">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white w-full sm:w-auto"
+                    >
+                      Comenzar ahora
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Button
                     size="lg"
                     variant="outline"
@@ -485,12 +487,14 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                >
-                  Comenzar ahora
-                </Button>
+                <Link href="/sign-up">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                  >
+                    Comenzar ahora
+                  </Button>
+                </Link>
                 <Button size="lg" variant="outline">
                   Contactar con ventas
                 </Button>
