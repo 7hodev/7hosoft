@@ -28,7 +28,7 @@ export function SiteHeader({ language, onLanguageChange, t }: SiteHeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center space-x-2">
-          <span className="font-bold">7hoSoft</span>
+          <span className="text-xl font-bold">7hoSoft</span>
         </Link>
         <NavigationMenu className="hidden lg:flex lg:ml-6">
           <NavigationMenuList>
@@ -74,7 +74,7 @@ export function SiteHeader({ language, onLanguageChange, t }: SiteHeaderProps) {
         </NavigationMenu>
         <div className="flex flex-1 items-center justify-end gap-4">
           <div className="flex items-center space-x-4">
-            <LanguageSwitcher language={language} onChange={onLanguageChange} />
+            {/* <LanguageSwitcher language={language} onChange={onLanguageChange} /> */}
             <ThemeToggle />
           </div>
           <div className="flex :items-center space-x-4">
