@@ -50,7 +50,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 border-t md:hidden bg-background z-50">
-      <div className="flex h-16 items-center justify-around">
+      <div className="h-16 grid grid-cols-5">
         {navItems.map((item) => (
           <Button
             key={item.name}
