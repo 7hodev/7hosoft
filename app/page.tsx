@@ -65,7 +65,7 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-primary/20 hover:bg-primary/5 w-full sm:w-auto"
+                    className="hidden lg:block border-primary/20 hover:bg-primary/5 w-full sm:w-auto"
                   >
                     Ver demostración
                   </Button>
@@ -482,7 +482,7 @@ export default function Home() {
                   Listo para transformar tu negocio
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Únete a miles de empresas que ya confían en 7hoSoft para
+                  Únete a miles de empresas que ya confían en <span className="text-primary">7hoSoft</span> para
                   gestionar su día a día.
                 </p>
               </div>

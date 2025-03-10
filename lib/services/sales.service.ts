@@ -26,6 +26,8 @@ export const SalesService = {
     sale_date: string;
     status: SaleStatus;
     total_amount: number;
+    sale_description?: string;
+    payment_method?: string;
     products: { id: string; quantity: number }[];
   }) => {
     const supabase = createClient();
@@ -40,7 +42,9 @@ export const SalesService = {
           employee_id: saleData.employee_id,
           sale_date: new Date().toISOString(),
           status: saleData.status,
-          total_amount: saleData.total_amount
+          total_amount: saleData.total_amount,
+          sale_description: saleData.sale_description || null,
+          payment_method: saleData.payment_method || 'cash'
         })
         .select()
         .single();
@@ -114,6 +118,8 @@ export const SalesService = {
     sale_date?: string;
     status?: SaleStatus;
     total_amount?: number;
+    sale_description?: string;
+    payment_method?: string;
     products?: { id: string; quantity: number }[];
   }) => {
     const supabase = createClient();
@@ -127,6 +133,8 @@ export const SalesService = {
       if (updatedData.sale_date) updateFields.sale_date = updatedData.sale_date;
       if (updatedData.status) updateFields.status = updatedData.status;
       if (updatedData.total_amount) updateFields.total_amount = updatedData.total_amount;
+      if (updatedData.sale_description !== undefined) updateFields.sale_description = updatedData.sale_description;
+      if (updatedData.payment_method) updateFields.payment_method = updatedData.payment_method;
       
       const { data: sale, error: saleError } = await supabase
         .from("sales")

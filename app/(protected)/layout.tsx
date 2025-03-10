@@ -27,9 +27,12 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/sidebar/team-switcher";
 import { BottomNav } from "@/components/sidebar/nav-responsive";
 import { Toaster } from "@/components/ui/sonner"
+import { useModal } from "@/components/contexts/modal-context";
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isMobile } = useSidebar();
+
+  const { isModalOpen } = useModal(); // Obtiene el estado del modal
 
   const pageNames: Record<string, string> = {
     "/": "Inicio",
@@ -93,6 +96,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <div className="flex-1 overflow-auto overscroll-none">
         <div className="flex flex-1 flex-col gap-2 p-2 md:p-5 pb-20 lg:pb-0">{children}</div>
         <Toaster />
+        
       </div>
     </SidebarInset>
   );

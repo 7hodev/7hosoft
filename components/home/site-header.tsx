@@ -78,10 +78,17 @@ export function SiteHeader({ language, onLanguageChange, t }: SiteHeaderProps) {
             <ThemeToggle />
           </div>
           <div className="flex :items-center space-x-4">
-            <Button variant="ghost" className="bg-black text-white dark:bg-white dark:text-black lg:bg-white lg:text-black dark:lg:bg-black dark:lg:text-white hover:bg-secondary/90" asChild>
+            <Button
+              variant="outline"
+              className="border-primary/20 hover:bg-primary/5 w-full sm:w-auto"
+              asChild
+            >
               <Link href="/sign-in">{t.nav.signin}</Link>
             </Button>
-            <Button asChild className="hidden lg:block">
+            <Button
+              asChild
+              className="hidden lg:block bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white w-full sm:w-auto"
+            >
               <Link href="/sign-up">{t.nav.signup}</Link>
             </Button>
           </div>
