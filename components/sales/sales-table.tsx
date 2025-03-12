@@ -25,6 +25,7 @@ import {
   Filter,
   X,
   Calendar,
+  PencilLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -54,8 +55,7 @@ export function SalesTable() {
     getSaleProducts,
     products,
   } = useDb();
-  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [expandedSales, setExpandedSales] = useState<Record<string, boolean>>({});
   const [displaySaleProducts, setDisplaySaleProducts] = useState<
     Record<string, { product: any; soldProduct: any }[]>
   >({});
@@ -87,9 +87,11 @@ export function SalesTable() {
     return `$${price.toFixed(2)}`;
   };
 
-  const handleRowClick = async (saleId: string) => {
-    // Solo necesitamos cargar los productos la primera vez
-    if (!displaySaleProducts[saleId]) {
+  const toggleRowExpanded = async (saleId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar que se propague al onClick de la fila
+    
+    // Si no está cargado y no se está cargando, cargar los productos
+    if (!displaySaleProducts[saleId] && !loadingSaleProducts[saleId]) {
       setLoadingSaleProducts((prev) => ({ ...prev, [saleId]: true }));
       try {
         const products = await getSaleProducts(saleId);
@@ -100,31 +102,34 @@ export function SalesTable() {
         setLoadingSaleProducts((prev) => ({ ...prev, [saleId]: false }));
       }
     }
-
-    // Abrir el diálogo de edición
-    setEditingSaleId(saleId);
-    setIsEditDialogOpen(true);
+    
+    // Alternar el estado expandido
+    setExpandedSales(prev => ({
+      ...prev,
+      [saleId]: !prev[saleId]
+    }));
   };
 
   useEffect(() => {
     // Precargar productos para mejorar la experiencia de usuario
     const loadInitialProducts = async () => {
       if (sales.length > 0) {
-        for (const sale of sales.slice(0, 5)) {
-          // Solo precargamos los primeros 5 para no sobrecargar
-          if (!displaySaleProducts[sale.id]) {
-            try {
-              const products = await getSaleProducts(sale.id);
-              setDisplaySaleProducts((prev) => ({
-                ...prev,
-                [sale.id]: products,
-              }));
-            } catch (error) {
-              console.error(
-                `Error precargando productos para venta ${sale.id}:`,
-                error
-              );
-            }
+        const firstSaleId = sales[0].id;
+        if (!displaySaleProducts[firstSaleId]) {
+          setLoadingSaleProducts((prev) => ({ ...prev, [firstSaleId]: true }));
+          try {
+            const products = await getSaleProducts(firstSaleId);
+            setDisplaySaleProducts((prev) => ({
+              ...prev,
+              [firstSaleId]: products,
+            }));
+          } catch (error) {
+            console.error("Error cargando productos:", error);
+          } finally {
+            setLoadingSaleProducts((prev) => ({
+              ...prev,
+              [firstSaleId]: false,
+            }));
           }
         }
       }
@@ -133,226 +138,192 @@ export function SalesTable() {
     loadInitialProducts();
   }, [sales, getSaleProducts]);
 
-  // Función para filtrar las ventas
+  // Filtrar ventas basadas en los filtros aplicados
   const filteredSales = sales.filter((sale) => {
-    // Filtrado por búsqueda (cliente, empleado, productos)
+    // Filtro por búsqueda (cliente o productos)
     if (searchQuery) {
-      const customerName = getCustomerName(sale.customer_id).toLowerCase();
-      const employeeName = getEmployeeName(sale.employee_id).toLowerCase();
-      const query = searchQuery.toLowerCase();
+      const customer = customers.find((c) => c.id === sale.customer_id);
+      const customerName = customer ? customer.name.toLowerCase() : "";
+      const searchLower = searchQuery.toLowerCase();
 
-      // Comprobar si coincide con nombre de cliente o empleado
-      const matchesCustomerOrEmployee =
-        customerName.includes(query) || employeeName.includes(query);
+      // Comprobar si el nombre del cliente coincide
+      const customerMatch = customerName.includes(searchLower);
 
-      // Comprobar si coincide con algún producto
-      const matchesProduct = displaySaleProducts[sale.id]?.some(({ product }) =>
-        product.name.toLowerCase().includes(query)
-      );
+      // Comprobar si algún producto coincide
+      const saleProductsData = displaySaleProducts[sale.id];
+      const productsMatch =
+        saleProductsData &&
+        saleProductsData.some(({ product }) =>
+          product.name.toLowerCase().includes(searchLower)
+        );
 
-      if (!matchesCustomerOrEmployee && !matchesProduct) {
-        return false;
-      }
+      if (!customerMatch && !productsMatch) return false;
     }
 
-    // Filtrado por estado
-    if (
-      filterStatus &&
-      filterStatus !== "all" &&
-      sale.status !== filterStatus
-    ) {
+    // Filtro por estado
+    if (filterStatus !== "all" && sale.status !== filterStatus) {
       return false;
     }
 
-    // Filtrado por fecha
-    if (filterDate) {
-      // Parsear la fecha de la venta y establecerla al inicio del día
-      const saleDate = startOfDay(parseISO(sale.sale_date));
-
-      // Convertir la fecha del filtro a un objeto Date al inicio del día
-      // El formato del input date es "YYYY-MM-DD"
-      const filterDateObj = startOfDay(
-        parse(filterDate, "yyyy-MM-dd", new Date())
-      );
-
-      // Comparar si las fechas son iguales (ambas normalizadas al inicio del día)
-      if (!isEqual(saleDate, filterDateObj)) {
-        return false;
-      }
-    }
-
-    // Filtrado por producto específico
+    // Filtro por producto específico
     if (
-      filterProduct &&
       filterProduct !== "all" &&
-      !displaySaleProducts[sale.id]?.some(
-        ({ product }) => product.id === filterProduct
-      )
+      (!displaySaleProducts[sale.id] ||
+        !displaySaleProducts[sale.id].some(
+          ({ product }) => product.id === filterProduct
+        ))
     ) {
       return false;
+    }
+
+    // Filtro por fecha
+    if (filterDate) {
+      const saleDate = startOfDay(parseISO(sale.sale_date));
+      const selectedDate = startOfDay(parse(filterDate, "yyyy-MM-dd", new Date()));
+      if (!isEqual(saleDate, selectedDate)) {
+        return false;
+      }
     }
 
     return true;
   });
 
+  // Restablecer todos los filtros
   const resetFilters = () => {
+    setSearchQuery("");
     setFilterProduct("all");
     setFilterStatus("all");
     setFilterDate("");
+    setShowFilters(false);
   };
 
   if (!selectedStore) return null;
 
   return (
-    <Card className="flex flex-col gap-4 p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-0">
-        <h2 className="text-xl font-bold w-1/2">Ventas recientes</h2>
+    <Card className="col-span-3">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <CardTitle className="text-2xl">Ventas</CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar ventas..."
+                className="pl-8 w-full md:w-[200px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
-        {/* Controles de filtrado */}
-        <div className="flex gap-2 w-full lg:w-1/2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar por producto, cliente o empleado..."
-              className="pl-8 pr-8 peer"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {/* Elimina la "X" nativa del input */}
-            <style>
-              {`
-                .peer::-webkit-search-decoration,
-                .peer::-webkit-search-cancel-button {
-                  display: none;
-                 }
-            `}
-            </style>
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                type="button"
-                size="sm"
-                className="absolute right-1 top-1.5 h-6 w-6 p-0"
-                onClick={() => setSearchQuery("")}
-              >
-                <X className="h-6 w-6" />
-              </Button>
-            )}
-          </div>
-
-          <Popover open={showFilters} onOpenChange={setShowFilters}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-1">
-                <Filter className="h-4 w-4" />
-                Filtros
-                {((filterProduct && filterProduct !== "all") ||
-                  (filterStatus && filterStatus !== "all") ||
-                  filterDate) && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1">
-                    {[
-                      filterProduct !== "all" ? 1 : 0,
-                      filterStatus !== "all" ? 1 : 0,
-                      filterDate ? 1 : 0,
-                    ].reduce((a, b) => a + b, 0)}
-                  </Badge>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="end">
-              <div className="space-y-4">
-                <h4 className="font-medium">Filtrar ventas</h4>
-
-                <div className="space-y-2">
-                  <Label htmlFor="filterProduct">Producto</Label>
-                  <Select
-                    value={filterProduct}
-                    onValueChange={setFilterProduct}
-                  >
-                    <SelectTrigger id="filterProduct">
-                      <SelectValue placeholder="Selecciona un producto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los productos</SelectItem>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="filterStatus">Estado</Label>
-                  <Select
-                    value={filterStatus}
-                    onValueChange={(value: SaleStatus | "all") =>
-                      setFilterStatus(value)
-                    }
-                  >
-                    <SelectTrigger id="filterStatus">
-                      <SelectValue placeholder="Cualquier estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="pending">Pendiente</SelectItem>
-                      <SelectItem value="completed">Completada</SelectItem>
-                      <SelectItem value="canceled">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="filterDate">Fecha</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Filter className="h-4 w-4 mr-2" /> Filtros
+                  {(filterProduct !== "all" ||
+                    filterStatus !== "all" ||
+                    filterDate) && (
+                    <Badge className="ml-2 bg-primary text-white" variant="default">
+                      {[
+                        filterProduct !== "all" ? 1 : 0,
+                        filterStatus !== "all" ? 1 : 0,
+                        filterDate ? 1 : 0,
+                      ].reduce((a, b) => a + b, 0)}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[220px] p-4">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Filtrar por</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="product">Producto</Label>
+                    <Select
+                      value={filterProduct}
+                      onValueChange={setFilterProduct}
+                    >
+                      <SelectTrigger id="product">
+                        <SelectValue placeholder="Todos los productos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los productos</SelectItem>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Estado</Label>
+                    <Select
+                      value={filterStatus}
+                      onValueChange={(value) =>
+                        setFilterStatus(value as SaleStatus | "all")
+                      }
+                    >
+                      <SelectTrigger id="status">
+                        <SelectValue placeholder="Todos los estados" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los estados</SelectItem>
+                        <SelectItem value="pending">Pendiente</SelectItem>
+                        <SelectItem value="completed">Completada</SelectItem>
+                        <SelectItem value="canceled">Cancelada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Fecha</Label>
+                    <div className="relative">
                       <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="filterDate"
+                        id="date"
                         type="date"
+                        className="pl-8"
                         value={filterDate}
                         onChange={(e) => setFilterDate(e.target.value)}
-                        className="pl-8"
                       />
-                    </div>
-                    {filterDate && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setFilterDate("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  {filterDate && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Mostrando ventas del{" "}
-                      {format(
-                        parse(filterDate, "yyyy-MM-dd", new Date()),
-                        "dd MMMM yyyy",
-                        { locale: es }
+                      {filterDate && (
+                        <button
+                          type="button"
+                          onClick={() => setFilterDate("")}
+                          className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
                       )}
-                    </p>
-                  )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                    >
+                      Reset
+                    </Button>
+                    <Button size="sm" onClick={() => setShowFilters(false)}>
+                      Aplicar
+                    </Button>
+                  </div>
                 </div>
-
-                <div className="flex justify-between pt-2">
-                  <Button variant="outline" size="sm" onClick={resetFilters}>
-                    Limpiar filtros
-                  </Button>
-                  <Button size="sm" onClick={() => setShowFilters(false)}>
-                    Aplicar
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
-      </div>
-
+      </CardHeader>
       <div className="">
         <div
           className="overflow-auto"
@@ -361,6 +332,7 @@ export function SalesTable() {
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
+                <TableHead></TableHead>
                 <TableHead>Productos</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Monto</TableHead>
@@ -372,7 +344,7 @@ export function SalesTable() {
               {filteredSales.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center py-4 text-muted-foreground"
                   >
                     {sales.length === 0
@@ -382,92 +354,170 @@ export function SalesTable() {
                 </TableRow>
               ) : (
                 filteredSales.map((sale) => (
-                  <TableRow
-                    key={sale.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleRowClick(sale.id)}
-                  >
-                    <TableCell>
-                      {loadingSaleProducts[sale.id] ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                          <span className="text-sm text-muted-foreground">
-                            Cargando...
-                          </span>
-                        </div>
-                      ) : displaySaleProducts[sale.id]?.length > 0 ? (
-                        <div className="flex gap-2 items-center">
-                          {displaySaleProducts[sale.id]
-                            .slice(0, 2)
-                            .map(({ product, soldProduct }) => (
-                              <div
-                                key={soldProduct.id}
-                                className="flex items-center text-sm"
-                              >
-                                <span className="font-medium">
-                                  {product.name}
+                  <React.Fragment key={sale.id}>
+                    <SalesEditDialog saleId={sale.id}>
+                      <TableRow className="hover:bg-muted/50 cursor-pointer">
+                        <TableCell className="w-6" onClick={(e) => e.stopPropagation()}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            onClick={(e) => toggleRowExpanded(sale.id, e)}
+                          >
+                            {expandedSales[sale.id] ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          {loadingSaleProducts[sale.id] ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                              <span className="text-sm text-muted-foreground">
+                                Cargando...
+                              </span>
+                            </div>
+                          ) : displaySaleProducts[sale.id]?.length > 0 ? (
+                            <div className="flex gap-2 items-center">
+                              {displaySaleProducts[sale.id]
+                                .slice(0, 2)
+                                .map(({ product, soldProduct }) => (
+                                  <div
+                                    key={soldProduct.id}
+                                    className="flex items-center text-sm"
+                                  >
+                                    <span className="font-medium">
+                                      {product.name}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      &nbsp; x {soldProduct.quantity}
+                                    </span>
+                                  </div>
+                                ))}
+                              {displaySaleProducts[sale.id].length > 2 && (
+                                <span className="text-xs text-muted-foreground">
+                                  +{displaySaleProducts[sale.id].length - 2} más
                                 </span>
-                                <span className="text-muted-foreground">
-                                  &nbsp; x {soldProduct.quantity}
-                                </span>
-                              </div>
-                            ))}
-                          {displaySaleProducts[sale.id].length > 2 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{displaySaleProducts[sale.id].length - 2} más
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              Cargando productos...
                             </span>
                           )}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
-                          Cargando productos...
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{getCustomerName(sale.customer_id)}</TableCell>
-                    <TableCell className="font-medium">
-                      {formatPrice(sale.total_amount)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`${
-                          sale.status === "completed"
-                            ? "bg-green-100 hover:bg-green-200 text-green-700"
-                            : sale.status === "canceled"
-                              ? "bg-red-100 hover:bg-red-200 text-red-700"
-                              : "bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
-                        }`}
-                      >
-                        {sale.status === "completed"
-                          ? "Completada"
-                          : sale.status === "canceled"
-                            ? "Cancelada"
-                            : "Pendiente"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(parseISO(sale.sale_date), "dd/MM/yyyy", {
-                        locale: es,
-                      })}
-                    </TableCell>
-                  </TableRow>
+                        </TableCell>
+                        <TableCell>{getCustomerName(sale.customer_id)}</TableCell>
+                        <TableCell className="font-medium">
+                          {formatPrice(sale.total_amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`${
+                              sale.status === "completed"
+                                ? "bg-green-100 hover:bg-green-200 text-green-700"
+                                : sale.status === "canceled"
+                                  ? "bg-red-100 hover:bg-red-200 text-red-700"
+                                  : "bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
+                            }`}
+                          >
+                            {sale.status === "completed"
+                              ? "Completada"
+                              : sale.status === "canceled"
+                                ? "Cancelada"
+                                : "Pendiente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {format(parseISO(sale.sale_date), "dd/MM/yyyy", {
+                            locale: es,
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    </SalesEditDialog>
+                    {expandedSales[sale.id] && displaySaleProducts[sale.id] && (
+                      <TableRow>
+                        <TableCell></TableCell>
+                        <TableCell colSpan={5} className="bg-muted/30 pb-3">
+                          <div className="p-2">
+                            <h4 className="text-sm font-medium mb-2">Detalles de la venta</h4>
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground">Cliente:</span>
+                                  <div className="font-medium">{getCustomerName(sale.customer_id)}</div>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Empleado:</span>
+                                  <div className="font-medium">{getEmployeeName(sale.employee_id)}</div>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Estado:</span>
+                                  <div className="font-medium">
+                                    {sale.status === "completed"
+                                      ? "Completada"
+                                      : sale.status === "canceled"
+                                        ? "Cancelada"
+                                        : "Pendiente"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Método de pago:</span>
+                                  <div className="font-medium capitalize">
+                                    {sale.payment_method === "cash"
+                                      ? "Efectivo"
+                                      : sale.payment_method === "credit_card"
+                                        ? "Tarjeta de crédito"
+                                        : sale.payment_method || "No especificado"}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="mt-3">
+                                <span className="text-muted-foreground text-sm">Productos:</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-1">
+                                  {displaySaleProducts[sale.id].map(({ product, soldProduct }) => (
+                                    <div key={soldProduct.id} className="text-sm bg-background rounded-md p-2 flex justify-between">
+                                      <div>
+                                        <div className="font-medium">{product.name}</div>
+                                        <div className="text-muted-foreground">Cantidad: {soldProduct.quantity}</div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div>${product.price.toFixed(2)}</div>
+                                        <div className="font-medium">${(product.price * soldProduct.quantity).toFixed(2)}</div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {sale.sale_description && (
+                                <div className="mt-2">
+                                  <span className="text-muted-foreground text-sm">Descripción:</span>
+                                  <div className="text-sm mt-1 p-2 bg-background rounded-md">
+                                    {sale.sale_description}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="flex justify-end pt-2">
+                                <SalesEditDialog saleId={sale.id}>
+                                  <Button size="sm">Editar venta</Button>
+                                </SalesEditDialog>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </TableBody>
           </Table>
         </div>
       </div>
-
-      {editingSaleId && (
-        <SalesEditDialog
-          saleId={editingSaleId}
-          isOpen={isEditDialogOpen}
-          onOpenChange={(open) => {
-            setIsEditDialogOpen(open);
-            if (!open) setEditingSaleId(null);
-          }}
-        />
-      )}
     </Card>
   );
 }

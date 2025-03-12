@@ -2,13 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,25 +18,43 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
+  SelectGroup,
 } from "@/components/ui/select";
 import { useDb } from "@/providers/db-provider";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo, ReactNode } from "react";
 import { SaleStatus } from "@/lib/services/sales.service";
-import { Product } from '@/lib/services/products.service';
-import { Card, CardContent } from "@/components/ui/card";
+import { Product } from "@/lib/services/products.service";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
+import { Toaster } from "@/components/ui/sonner";
+import { useModal } from "@/components/contexts/modal-context";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { Trash2, PencilLine } from "lucide-react";
 
 interface SalesEditDialogProps {
   saleId: string;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: ReactNode;
 }
 
-export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialogProps) {
+export function SalesEditDialog({
+  saleId,
+  isOpen,
+  onOpenChange,
+  children,
+}: SalesEditDialogProps) {
   const {
     selectedStore,
     customers,
@@ -46,28 +66,66 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
     getSaleProducts
   } = useDb();
 
+  // Estados principales
+  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     customer_id: "",
     employee_id: "",
   });
-  const [selectedStatus, setSelectedStatus] = useState<SaleStatus>('pending');
-  const [selectedProducts, setSelectedProducts] = useState<Array<Product & { quantity: number | string }>>([]);
+  const [selectedStatus, setSelectedStatus] = useState<SaleStatus>("pending");
+  const [saleDescription, setSaleDescription] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [selectedProducts, setSelectedProducts] = useState<
+    Array<Product & { quantity: number | string }>
+  >([]);
+
+  // Estados auxiliares
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingInitialData, setLoadingInitialData] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showStockWarning, setShowStockWarning] = useState<{ productId: string, warning: string } | null>(null);
-
-  // Nombres para mostrar en selects
+  const [showStockWarning, setShowStockWarning] = useState<{
+    productId: string;
+    warning: string;
+  } | null>(null);
   const [customerDisplayName, setCustomerDisplayName] = useState("Selecciona un cliente");
   const [employeeDisplayName, setEmployeeDisplayName] = useState("Selecciona un empleado");
 
+  // Referencias y utilidades
+  const { setIsModalOpen } = useModal();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Estado para manejar el gesto de deslizar para eliminar en móvil
+  const [swipeState, setSwipeState] = useState<{
+    productId: string | null;
+    offset: number;
+    startX: number;
+    isDragging: boolean;
+  }>({
+    productId: null,
+    offset: 0,
+    startX: 0,
+    isDragging: false,
+  });
+
+  // Calcular el total de la venta
+  const totalAmount = useMemo(() => {
+    return selectedProducts.reduce((acc, product) => {
+      const quantity =
+        typeof product.quantity === "string"
+          ? product.quantity === ""
+            ? 0
+            : parseInt(product.quantity)
+          : product.quantity;
+      return acc + product.price * (quantity || 0);
+    }, 0);
+  }, [selectedProducts]);
 
   // Cargar datos de la venta en modo edición
   useEffect(() => {
     const loadSaleData = async () => {
-      if (saleId && isOpen) {
+      if (saleId && open) {
         setLoadingInitialData(true);
         try {
           // Buscar la venta por ID
@@ -84,6 +142,8 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
           });
           
           setSelectedStatus(sale.status as SaleStatus);
+          setSaleDescription(sale.sale_description || "");
+          setPaymentMethod(sale.payment_method || "cash");
           
           // Actualizar nombres para mostrar
           const customer = customers.find(c => c.id === sale.customer_id);
@@ -112,12 +172,25 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
     };
     
     loadSaleData();
-  }, [saleId, isOpen, sales, customers, employees, getSaleProducts]);
+  }, [saleId, open, sales, customers, employees, getSaleProducts]);
 
-  // Actualizar nombres cuando cambian las selecciones
+  // Manejar cambios en el estado open controlado externamente
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
+
+  // Inicialización del componente
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Efectos para actualizar nombres para mostrar
   useEffect(() => {
     if (formData.customer_id) {
-      const customer = customers.find(c => c.id === formData.customer_id);
+      const customer = customers.find((c) => c.id === formData.customer_id);
       if (customer) {
         setCustomerDisplayName(customer.name);
       }
@@ -128,7 +201,7 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
 
   useEffect(() => {
     if (formData.employee_id) {
-      const employee = employees.find(e => e.id === formData.employee_id);
+      const employee = employees.find((e) => e.id === formData.employee_id);
       if (employee) {
         setEmployeeDisplayName(employee.name);
       }
@@ -137,31 +210,29 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
     }
   }, [formData.employee_id, employees]);
 
+  // Función para propagar cambios en el estado open al controlador externo
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    setIsModalOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+  };
+
   // Obtener el texto del estado seleccionado
   const getStatusText = () => {
     const statusMap = {
-      'pending': 'Pendiente',
-      'completed': 'Completada',
-      'canceled': 'Cancelada'
+      pending: "Pendiente",
+      completed: "Completada",
+      canceled: "Cancelada",
     };
-    return statusMap[selectedStatus] || 'Selecciona un estado';
+    return statusMap[selectedStatus] || "Selecciona un estado";
   };
 
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  const totalAmount = selectedProducts.reduce((acc, product) => {
-    const quantity = typeof product.quantity === 'string' ?
-      (product.quantity === '' ? 0 : parseInt(product.quantity)) :
-      product.quantity;
-    return acc + (product.price * (quantity || 0));
-  }, 0);
-
+  // Funciones para manejar productos
   const handleProductSelect = (product: Product) => {
     // Evitar duplicados
-    if (selectedProducts.some(p => p.id === product.id)) {
+    if (selectedProducts.some((p) => p.id === product.id)) {
       return;
     }
 
@@ -169,23 +240,22 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
   };
 
   const handleQuantityChange = (productId: string, value: string) => {
-    const numValue = value === '' ? '' : parseInt(value);
-    
+    const numValue = value === "" ? "" : parseInt(value);
+
     // Actualizar la cantidad del producto
-    setSelectedProducts(prevProducts => {
-      return prevProducts.map(product => {
+    setSelectedProducts((prevProducts) => {
+      return prevProducts.map((product) => {
         if (product.id === productId) {
           // Verificar si hay suficiente stock
-          if (typeof numValue === 'number' && numValue > product.stock) {
+          if (typeof numValue === "number" && numValue > product.stock) {
             setShowStockWarning({
               productId,
-              warning: `Solo hay ${product.stock} unidades disponibles`
+              warning: `Solo hay ${product.stock} unidades disponibles`,
             });
           } else {
             setShowStockWarning(null);
           }
-          
-          // Importante: devolver un objeto que extiende Product correctamente
+
           return { ...product, quantity: numValue };
         }
         return product;
@@ -194,73 +264,117 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
   };
 
   const removeProduct = (productId: string) => {
-    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+    setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
     if (showStockWarning?.productId === productId) {
       setShowStockWarning(null);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Función para manejar la selección de producto desde el select en móvil
+  const handleProductSelectFromDropdown = (productId: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+
+    handleProductSelect(product);
+  };
+
+  // Funciones para swipe para eliminar
+  const handleTouchStart = (
+    e: React.TouchEvent | React.MouseEvent,
+    productId: string
+  ) => {
+    setSwipeState({
+      productId,
+      startX: "touches" in e ? e.touches[0].clientX : e.clientX,
+      offset: 0,
+      isDragging: true,
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!swipeState.isDragging) return;
+
+    const currentX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const diff = currentX - swipeState.startX;
+
+    // Solo permitir deslizar hacia la izquierda
+    const newOffset = diff < 0 ? diff : 0;
+
+    setSwipeState((prev) => ({
+      ...prev,
+      offset: newOffset,
+    }));
+  };
+
+  const handleTouchEnd = () => {
+    if (!swipeState.isDragging) return;
+
+    // Si se deslizó más de 100px, eliminar el producto
+    if (swipeState.offset < -100 && swipeState.productId) {
+      removeProduct(swipeState.productId);
+    }
+
+    // Reiniciar el estado
+    setSwipeState({
+      productId: null,
+      offset: 0,
+      startX: 0,
+      isDragging: false,
+    });
+  };
+
+  // Validar y enviar formulario
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     setError(null);
 
-    // Validar campos requeridos
-    if (!selectedStore || !formData.customer_id || !formData.employee_id) {
-      setError('Por favor selecciona una tienda, cliente y empleado');
-      toast.error('Por favor completa todos los campos requeridos');
-      return;
-    }
-
-    // Validar que haya productos seleccionados
-    if (selectedProducts.length === 0) {
-      setError('Por favor selecciona al menos un producto');
-      toast.error('Por favor selecciona al menos un producto');
-      return;
-    }
-
-    // Validar que todas las cantidades sean válidas
-    const invalidProduct = selectedProducts.find(product => {
-      const quantity = typeof product.quantity === 'string' 
-        ? (product.quantity === '' ? 0 : parseInt(product.quantity))
-        : product.quantity;
-      return quantity <= 0;
-    });
-
-    if (invalidProduct) {
-      setError(`La cantidad para ${invalidProduct.name} debe ser mayor a cero`);
-      toast.error('Las cantidades deben ser mayores a cero');
-      return;
-    }
-
-    // Preparar datos para actualizar
-    const saleData = {
-      customer_id: formData.customer_id,
-      employee_id: formData.employee_id,
-      status: selectedStatus,
-      total_amount: totalAmount,
-      products: selectedProducts.map(product => ({
-        id: product.id,
-        quantity: typeof product.quantity === 'string' 
-          ? parseInt(product.quantity) 
-          : product.quantity
-      }))
-    };
+    // Validaciones
+    if (!validateFormData()) return;
 
     setLoading(true);
-    
+
     try {
+      // Asegurarnos que solo enviamos estados válidos
+      const validStatus: SaleStatus =
+        selectedStatus === "canceled" ? "pending" : selectedStatus;
+
+      // Convertir cantidades a números
+      const productsWithNumericQuantity = selectedProducts.map((p) => ({
+        ...p,
+        quantity:
+          typeof p.quantity === "string" ? parseInt(p.quantity) || 0 : p.quantity,
+      }));
+
+      // Los datos para actualizar la venta
+      const saleData = {
+        customer_id: formData.customer_id,
+        employee_id: formData.employee_id,
+        status: validStatus,
+        total_amount: totalAmount,
+        sale_description: saleDescription,
+        payment_method: paymentMethod,
+        products: productsWithNumericQuantity.map((p) => ({
+          id: p.id,
+          quantity: p.quantity,
+        })),
+      };
+
+      // Actualizar venta
       await updateSale(saleId, saleData);
-      toast.success('Venta actualizada con éxito');
-      onOpenChange(false);
-      await refreshData();
+      toast.success("Venta actualizada correctamente");
+
+      handleOpenChange(false);
+      refreshData();
     } catch (err) {
-      console.error("Error al actualizar venta:", err);
-      
+      console.error("Error en SalesEditDialog:", err);
       let errorMessage = "Error al actualizar la venta";
+
       if (err instanceof Error) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -268,182 +382,63 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
     }
   };
 
+  // Función de validación
+  const validateFormData = () => {
+    // Validar campos requeridos
+    if (!selectedStore || !formData.customer_id || !formData.employee_id) {
+      const errorMsg = "Por favor selecciona un cliente y empleado";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return false;
+    }
+
+    // Validar productos
+    if (selectedProducts.length === 0) {
+      const errorMsg = "Debes seleccionar al menos un producto";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return false;
+    }
+
+    // Validar cantidades
+    const productsWithInvalidQuantity = selectedProducts.filter((p) => {
+      if (typeof p.quantity === "string") {
+        return !p.quantity || p.quantity === "";
+      }
+      return !p.quantity || p.quantity <= 0;
+    });
+
+    if (productsWithInvalidQuantity.length > 0) {
+      const errorMsg = `Los siguientes productos tienen cantidades inválidas: ${productsWithInvalidQuantity.map((p) => p.name).join(", ")}`;
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return false;
+    }
+
+    // Convertir cantidades a números para validación de stock
+    const productsWithNumericQuantity = selectedProducts.map((p) => ({
+      ...p,
+      quantity:
+        typeof p.quantity === "string" ? parseInt(p.quantity) || 0 : p.quantity,
+    }));
+
+    // Validar stock
+    const stockValidation = productsWithNumericQuantity.find(
+      (p) => p.quantity > p.stock
+    );
+    if (stockValidation) {
+      const errorMsg = `No hay suficiente stock para "${stockValidation.name}". Solo hay ${stockValidation.stock} unidades disponibles.`;
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return false;
+    }
+
+    return true;
+  };
+
   if (!mounted) return null;
 
-  const FormContent = (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[calc(90vh-8rem)]">
-      <div className="bg-orange-300 flex-1 overflow-y-auto px-6 py-2">
-        <div className="space-y-4">
-          {/* Cliente y Empleado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer">Cliente</Label>
-              <Select 
-                value={formData.customer_id} 
-                onValueChange={(value) => setFormData({...formData, customer_id: value})}
-              >
-                <SelectTrigger id="customer">
-                  <SelectValue placeholder={customerDisplayName} />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="employee">Empleado</Label>
-              <Select 
-                value={formData.employee_id} 
-                onValueChange={(value) => setFormData({...formData, employee_id: value})}
-              >
-                <SelectTrigger id="employee">
-                  <SelectValue placeholder={employeeDisplayName} />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map(employee => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {/* Estado de la venta */}
-          <div className="space-y-2">
-            <Label htmlFor="status">Estado de la venta</Label>
-            <Select 
-              value={selectedStatus} 
-              onValueChange={(value: SaleStatus) => setSelectedStatus(value)}
-            >
-              <SelectTrigger id="status">
-                <SelectValue placeholder={getStatusText()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="completed">Completada</SelectItem>
-                <SelectItem value="canceled">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Selector de Productos */}
-          <div className="space-y-2">
-            <Label htmlFor="selectProduct">Añadir producto</Label>
-            <Select onValueChange={(value) => {
-              const selectedProduct = products.find(p => p.id === value);
-              if (selectedProduct) {
-                handleProductSelect(selectedProduct);
-              }
-            }}>
-              <SelectTrigger id="selectProduct">
-                <SelectValue placeholder="Selecciona un producto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products
-                  .filter(product => !selectedProducts.some(p => p.id === product.id))
-                  .map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - ${product.price.toFixed(2)} - Stock: {product.stock}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Productos Seleccionados */}
-          <div className="space-y-2">
-            <Label>Productos seleccionados</Label>
-            {selectedProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No hay productos seleccionados</p>
-            ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                {selectedProducts.map(product => (
-                  <Card key={product.id} className="relative">
-                    <CardContent className="p-4 flex justify-between items-center">
-                      <div className="flex-1">
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">Precio: ${product.price.toFixed(2)}</p>
-                        <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20">
-                          <Input 
-                            type="number" 
-                            value={product.quantity.toString()} 
-                            onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                            min="1"
-                            className="w-full"
-                          />
-                          {showStockWarning?.productId === product.id && (
-                            <p className="text-xs text-red-500 mt-1">{showStockWarning.warning}</p>
-                          )}
-                        </div>
-                        
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => removeProduct(product.id)}
-                          className="h-10 w-10 p-0"
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Total */}
-          <div className="pt-4 flex justify-end">
-            <Badge variant="outline" className="text-lg py-2 px-3">
-              Total: ${totalAmount.toFixed(2)}
-            </Badge>
-          </div>
-          
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-        </div>
-      </div>
-    
-      <DialogFooter className="px-6 py-4 border-t">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => onOpenChange(false)}
-          disabled={loading}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <div className="flex items-center space-x-2">
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Guardando...</span>
-            </div>
-          ) : (
-            'Guardar cambios'
-          )}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-
+  // Componente de carga para la carga inicial de datos
   const LoadingContent = (
     <div className="flex items-center justify-center py-12">
       <div className="flex items-center space-x-2">
@@ -456,35 +451,501 @@ export function SalesEditDialog({ saleId, isOpen, onOpenChange }: SalesEditDialo
     </div>
   );
 
-  // Componente responsivo - Desktop usa Dialog, Mobile/Tablet usa Drawer
+  // Componentes de UI para productos en versión móvil
+  const MobileProductView = () => (
+    <div className="md:hidden flex flex-col gap-4 px-2">
+      <Card>
+        <CardContent className="p-4">
+          <Label
+            htmlFor="mobile-product-select"
+            className="font-semibold block mb-2"
+          >
+            Agregar producto
+          </Label>
+          <Select
+            onValueChange={handleProductSelectFromDropdown}
+            value=""
+          >
+            <SelectTrigger id="mobile-product-select">
+              <SelectValue placeholder="Seleccionar producto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {products
+                  .filter(
+                    (p) => !selectedProducts.some((sp) => sp.id === p.id)
+                  )
+                  .map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name} - ${product.price.toFixed(2)} -
+                      Stock: {product.stock}
+                    </SelectItem>
+                  ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Card className="max-h-[300px] min-h-[300px] overflow-y-scroll">
+        <CardHeader className="px-4 py-2">
+          <CardTitle className="text-base">
+            <div className="grid grid-cols-4 border-b pb-2">
+              <span className="col-span-2">Producto</span>
+              <span className="col-span-1 text-end">Cantidad</span>
+              <span className="col-span-1 text-end">Subtotal</span>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {selectedProducts.length === 0 ? (
+            <div className="flex justify-center items-center py-8">
+              <p className="text-sm text-muted-foreground italic">
+                No hay productos seleccionados
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {selectedProducts.map((product) => {
+                const quantity =
+                  typeof product.quantity === "string"
+                    ? parseInt(product.quantity) || 0
+                    : product.quantity || 0;
+                const subtotal = product.price * quantity;
+                const isCurrentSwipe = swipeState.productId === product.id;
+                const swipeOffset = isCurrentSwipe ? swipeState.offset : 0;
+                const deleteThreshold = swipeOffset < -50;
+
+                return (
+                  <div
+                    key={product.id}
+                    className="relative overflow-hidden border-b last:border-b-0"
+                  >
+                    <div
+                      className="absolute top-0 right-0 bottom-0 flex items-center justify-center bg-red-500 text-white px-4"
+                      style={{
+                        opacity: deleteThreshold
+                          ? 1
+                          : Math.min(Math.abs(swipeOffset) / 100, 0.7),
+                        width: "80px",
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </div>
+                    <div
+                      className="relative bg-background items-center grid grid-cols-4 p-3 transition-transform"
+                      style={{
+                        transform: `translateX(${swipeOffset}px)`,
+                      }}
+                      onTouchStart={(e) => handleTouchStart(e, product.id)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      onMouseDown={(e) => handleTouchStart(e, product.id)}
+                      onMouseMove={handleTouchMove}
+                      onMouseUp={handleTouchEnd}
+                      onMouseLeave={handleTouchEnd}
+                    >
+                      <div className="flex flex-col justify-center col-span-2 mb-1">
+                        <h4 className="font-medium">{product.name}</h4>
+                        <div className="flex text-xs text-muted-foreground mb-2">
+                          <span>
+                            Stock: {product.stock} | Precio: $
+                            {product.price.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end col-span-1">
+                        <Input
+                          type="number"
+                          value={product.quantity.toString()}
+                          onChange={(e) =>
+                            handleQuantityChange(product.id, e.target.value)
+                          }
+                          min="1"
+                          className="w-16 text-center"
+                        />
+                      </div>
+                      <span className="font-semibold flex justify-end col-span-1">
+                        ${subtotal.toFixed(2)}
+                      </span>
+                      {showStockWarning?.productId === product.id && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {showStockWarning.warning}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // Componentes de UI para productos en versión desktop
+  const DesktopProductView = () => (
+    <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-2 px-2">
+      {/* Mostrar todos los productos en forma de tarjetas */}
+      <div className="lg:col-span-1">
+        <Card>
+          <Label className="font-semibold border-b px-4 py-5 block">
+            Productos disponibles
+          </Label>
+          <div className="grid grid-cols-1 gap-2 max-h-[300px] min-h-[300px] overflow-y-scroll p-2 bg-background">
+            {products.map((product) => {
+              const isSelected = selectedProducts.some(
+                (p) => p.id === product.id
+              );
+              return (
+                <div
+                  key={product.id}
+                  className={`cursor-pointer transition-all hover:scale-[1.02] ${
+                    isSelected ? "border-2 border-primary shadow-md" : ""
+                  }`}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedProducts(
+                        selectedProducts.filter((p) => p.id !== product.id)
+                      );
+                    } else {
+                      handleProductSelect(product);
+                    }
+                  }}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex-1">
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Precio: ${product.price.toFixed(2)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Stock: {product.stock}
+                      </p>
+                    </div>
+                  </CardContent>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      {/* Productos Seleccionados */}
+      <div className="col-span-2">
+        <Card>
+          <Label className="hidden">Productos seleccionados</Label>
+          <div className="grid grid-cols-12 text-sm font-semibold border-b p-4">
+            <div className="col-span-5">Producto</div>
+            <div className="col-span-2 text-center">Precio</div>
+            <div className="col-span-2 text-center">Cantidad</div>
+            <div className="col-span-2 text-center">Subtotal</div>
+            <div className="col-span-1"></div>
+          </div>
+          <CardContent className="p-0 pl-4">
+            <div
+              className={`max-h-[300px] min-h-[300px] overflow-y-scroll ${
+                selectedProducts.length === 0 ? "flex justify-center items-center" : ""
+              }`}
+            >
+              {selectedProducts.length === 0 ? (
+                <div className="flex justify-center items-center h-full">
+                  <p className="text-sm text-muted-foreground italic">
+                    No hay productos seleccionados
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  {selectedProducts.map((product) => {
+                    const quantity =
+                      typeof product.quantity === "string"
+                        ? parseInt(product.quantity) || 0
+                        : product.quantity || 0;
+                    const subtotal = product.price * quantity;
+
+                    return (
+                      <div
+                        key={product.id}
+                        className="grid grid-cols-12 items-center py-2 border-b"
+                      >
+                        <div className="col-span-5 font-medium">
+                          {product.name}
+                        </div>
+                        <div className="col-span-2 text-center">
+                          ${product.price.toFixed(2)}
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <Input
+                            type="number"
+                            value={product.quantity.toString()}
+                            onChange={(e) =>
+                              handleQuantityChange(product.id, e.target.value)
+                            }
+                            min="1"
+                            className="w-16 mx-auto text-center"
+                          />
+                          {showStockWarning?.productId === product.id && (
+                            <p className="text-xs text-red-500 mt-1">
+                              {showStockWarning.warning}
+                            </p>
+                          )}
+                        </div>
+                        <div className="col-span-2 text-center font-medium">
+                          ${subtotal.toFixed(2)}
+                        </div>
+                        <div className="col-span-1 text-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => removeProduct(product.id)}
+                            className="h-7 w-7 p-0"
+                            title="Eliminar producto"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // Componente de formulario principal
+  const FormContent = (
+    <form
+      ref={formRef}
+      className="flex flex-col h-full max-h-[85vh] overflow-y-auto pb-0 lg:pb-14"
+    >
+      <div className="px-2 py-2 flex flex-col gap-4">
+        <div className="flex flex-col-reverse gap-4">
+          {/* Vista móvil y desktop para productos */}
+          <MobileProductView />
+          <DesktopProductView />
+          
+          {/* Cliente, Empleado y Estado */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 px-2 gap-4">
+            <div className="lg:w-full">
+              <Label htmlFor="customer">Cliente</Label>
+              <Select
+                value={formData.customer_id || "Selecciona un cliente"}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, customer_id: value });
+                }}
+              >
+                <SelectTrigger id="customer">
+                  <SelectValue>
+                    {formData.customer_id
+                      ? customerDisplayName
+                      : "Selecciona un cliente"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="lg:w-full">
+              <Label htmlFor="employee">Empleado</Label>
+              <Select
+                value={formData.employee_id || "Selecciona un empleado"}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, employee_id: value });
+                }}
+              >
+                <SelectTrigger id="employee">
+                  <SelectValue>
+                    {formData.employee_id
+                      ? employeeDisplayName
+                      : "Selecciona un empleado"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Estado de la venta */}
+            <div className="lg:w-full">
+              <Label htmlFor="status">Estado de la venta</Label>
+              <Select
+                value={selectedStatus}
+                onValueChange={(value: SaleStatus) => setSelectedStatus(value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder={getStatusText()} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="completed">Completada</SelectItem>
+                  <SelectItem value="canceled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Método de pago */}
+            <div className="lg:w-full">
+              <Label htmlFor="payment_method">Método de pago</Label>
+              <Select
+                value={paymentMethod}
+                onValueChange={(value: string) => setPaymentMethod(value)}
+              >
+                <SelectTrigger id="payment_method">
+                  <SelectValue placeholder="Seleccione método de pago" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Efectivo</SelectItem>
+                  <SelectItem value="credit_card">
+                    Tarjeta de crédito
+                  </SelectItem>
+                  <SelectItem value="others">Otros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <div className="grid px-2 gap-1.5">
+          <Label htmlFor="message">Descripción</Label>
+          <Textarea
+            placeholder="Escriba una descripción para esta venta"
+            id="message"
+            name="sale_description"
+            value={saleDescription}
+            onChange={(e) => setSaleDescription(e.target.value)}
+          />
+        </div>
+      </div>
+    </form>
+  );
+
+  // Botón de envío con estado de carga
+  const SubmitButton = ({ className = "" }: { className?: string }) => (
+    <Button type="button" disabled={loading} onClick={handleSubmit} className={className}>
+      {loading ? (
+        <div className="flex items-center space-x-2">
+          <svg
+            className="animate-spin h-4 w-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span>Guardando...</span>
+        </div>
+      ) : (
+        "Guardar cambios"
+      )}
+    </Button>
+  );
+
+  // Crear trigger predeterminado si no se proporciona uno
+  const defaultTrigger = (
+    <Button variant="ghost" size="icon">
+      <PencilLine className="h-4 w-4" />
+    </Button>
+  );
+
+  // Componente responsivo - Desktop usa Sheet, Mobile/Tablet usa Drawer
   if (isDesktop) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle className="text-xl">
-              Editar Venta #{saleId && typeof saleId === 'string' ? saleId.slice(-4) : ''}
-            </DialogTitle>
-            <DialogDescription>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetTrigger asChild>
+          {children || defaultTrigger}
+        </SheetTrigger>
+        <SheetContent className="sm:max-w-3xl p-0">
+          <Toaster position="top-right" />
+          <SheetHeader className="sticky top-0 left-0 right-0 bg-background px-6 h-20 border-b flex justify-center z-10">
+            <SheetTitle className="text-xl">
+              {`Editar Venta #${saleId && typeof saleId === 'string' ? saleId.slice(-4) : ''}`}
+            </SheetTitle>
+            <SheetDescription>
               Modifica la información de la venta
-            </DialogDescription>
-          </DialogHeader>
-          
+            </SheetDescription>
+          </SheetHeader>
+
           {loadingInitialData ? LoadingContent : FormContent}
-        </DialogContent>
-      </Dialog>
+
+          {/* Footer */}
+          <div className="h-16 bg-background flex flex-row justify-between items-center px-6 py-4 border-t sticky bottom-0 right-0">
+            {/* Total */}
+            <div className="">
+              <Badge className="bg-background text-primary text-lg py-2 px-3 hover:bg-background hover:text-primary">
+                Total: ${totalAmount.toFixed(2)}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={loading}
+                className="hidden lg:block"
+              >
+                Cancelar
+              </Button>
+              <SubmitButton />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     );
   } else {
     return (
-      <Drawer open={isOpen} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerTrigger asChild>
+          {children || defaultTrigger}
+        </DrawerTrigger>
         <DrawerContent className="max-h-[90vh]">
+          <Toaster position="top-right" />
           <DrawerHeader>
             <DrawerTitle className="text-xl">
               Editar Venta #{saleId && typeof saleId === 'string' ? saleId.slice(-4) : ''}
             </DrawerTitle>
           </DrawerHeader>
-          
+
           {loadingInitialData ? LoadingContent : FormContent}
+
+          {/* Footer para versión móvil */}
+          <DrawerFooter className="border-t sticky bottom-0 right-0">
+            <div className="flex justify-between items-center">
+              {/* Total */}
+              <div>
+                <Badge className="bg-background text-primary text-lg py-2 px-3 hover:bg-background hover:text-primary">
+                  Total: ${totalAmount.toFixed(2)}
+                </Badge>
+              </div>
+              <SubmitButton />
+            </div>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
