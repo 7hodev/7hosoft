@@ -380,46 +380,47 @@ export default function Home() {
               {[
                 {
                   name: "Básico",
-                  price: "0",
-                  description: "Ideal para autónomos y pequeñas empresas",
+                  price: "Free",
+                  description: "Ideal para autónomos, contadores y pequeñas empresas",
                   features: [
-                    "Hasta 3 usuarios",
-                    "Gestión de clientes",
-                    "Facturación básica",
-                    "Informes mensuales",
-                    "Soporte por email",
+                    "Gestión de finanzas",
+                    "Registro básico de ingresos y gastos",
+                    "Una sucursal",
+                    "Generación de facturas",
+                    "Presupuestos personalizados",
+                    "Gráficos y estadísticas",
                   ],
                   cta: "Comenzar gratis",
                   popular: false,
                 },
                 {
                   name: "Profesional",
-                  price: "0",
-                  description: "Perfecto para empresas en crecimiento",
+                  price: "$19.99",
+                  description: "Perfecto para empresas en crecimiento y contadores avanzados",
                   features: [
-                    "Hasta 10 usuarios",
                     "Todas las funciones del plan Básico",
-                    "Gestión de inventario",
-                    "Automatizaciones",
-                    "Informes avanzados",
-                    "Soporte prioritario",
+                    "5 sucursales",
+                    "Gestión de clientes",
+                    "Escaneo de facturas, 100 facturas/mes",
+                    "Exportación e importación de reportes",
+                    "Análisis básico de datos",
                   ],
                   cta: "Comenzar ahora",
                   popular: true,
                 },
                 {
                   name: "Empresarial",
-                  price: "0",
+                  price: "$39.99",
                   description: "Para empresas con necesidades avanzadas",
                   features: [
-                    "Usuarios ilimitados",
                     "Todas las funciones del plan Profesional",
-                    "API completa",
-                    "Integraciones personalizadas",
-                    "Formación personalizada",
-                    "Gestor de cuenta dedicado",
+                    "10 Sucursales",
+                    "Gestión de inventario",
+                    "Gestión de personal",
+                    "Escaneo de facturas, 500 facturas/mes",
+                    "Insights y predicciones avanzada con IA",
                   ],
-                  cta: "Contactar ventas",
+                  cta: "Comenzar ahora",
                   popular: false,
                 },
               ].map((plan, index) => (
@@ -442,7 +443,7 @@ export default function Home() {
                       </p>
                     </div>
                     <div className="mb-4">
-                      <span className="text-4xl font-bold">${plan.price}</span>
+                      <span className="text-4xl font-bold">{plan.price}</span>
                       <span className="text-muted-foreground">/mes</span>
                     </div>
                     <ul className="mb-6 space-y-2">

@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { SalesService, SaleStatus, StatusDisplayInfo } from "@/lib/services/sales.service";
+import { TransactionsService, TransactionStatus, StatusDisplayInfo, TransactionType, TransactionCategory } from "@/lib/services/transactions.service";
 import { StoresService } from "@/lib/services/stores.service";
 import { UsersService } from "@/lib/services/users.service";
 import { CustomersService } from "@/lib/services/customers.service";
@@ -15,7 +15,7 @@ import { SoldProductsService, SoldProduct } from "@/lib/services/sold_products.s
 type AppData = {
   user: any;
   stores: any[];
-  sales: any[];
+  transactions: any[];
   customers: any[];
   employees: any[];
   products: Product[];
@@ -25,16 +25,16 @@ type AppData = {
   error: string | null;
   refreshData: () => Promise<void>;
   setSelectedStore: (store: any) => Promise<void>;
-  createSale: (saleData: any) => Promise<void>;
-  updateSale: (saleId: string, updatedData: any) => Promise<void>;
-  getStatusDisplay: (status: SaleStatus) => StatusDisplayInfo;
-  getSaleProducts: (saleId: string) => Promise<{ product: Product; soldProduct: SoldProduct }[]>;
+  createTransaction: (transactionData: any) => Promise<any>;
+  updateTransaction: (transactionId: string, updatedData: any) => Promise<any>;
+  getStatusDisplay: (status: TransactionStatus) => StatusDisplayInfo;
+  getTransactionProducts: (transactionId: string) => Promise<{ product: Product; soldProduct: SoldProduct }[]>;
 };
 
 const DbContext = createContext<AppData>({
   user: null,
   stores: [],
-  sales: [],
+  transactions: [],
   customers: [],
   employees: [],
   products: [],
@@ -44,17 +44,17 @@ const DbContext = createContext<AppData>({
   error: null,
   refreshData: async () => {},
   setSelectedStore: async () => {},
-  createSale: async () => {},
-  updateSale: async () => {},
+  createTransaction: async () => {},
+  updateTransaction: async () => {},
   getStatusDisplay: () => ({ text: "", className: "" }),
-  getSaleProducts: async () => [],
+  getTransactionProducts: async () => [],
 });
 
 export function DbProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
   const [stores, setStores] = useState<any[]>([]);
-  const [sales, setSales] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -90,16 +90,26 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loadSalesForStore = async (storeId: string) => {
+  const loadTransactionsForStore = async (storeId: string) => {
     try {
-      const salesData = await SalesService.getStoreSales(storeId);
-      setSales(salesData);
+      console.log("Iniciando carga de transacciones para tienda:", storeId);
+      const transactionsData = await TransactionsService.getStoreTransactions(storeId);
+      console.log("Transacciones recibidas de la BD:", transactionsData.length);
       
-      const saleIds = salesData.map(sale => sale.id);
-      const soldProductsData = await SoldProductsService.getSalesProducts(saleIds);
+      // Verificar que todas las transacciones se están cargando correctamente
+      if (transactionsData.length > 0) {
+        console.log("Primera transacción:", transactionsData[0].id);
+        console.log("Última transacción:", transactionsData[transactionsData.length - 1].id);
+      }
+      
+      setTransactions(transactionsData);
+      
+      const transactionIds = transactionsData.map((transaction: any) => transaction.id);
+      const soldProductsData = await SoldProductsService.getTransactionsProducts(transactionIds);
       setSoldProducts(soldProductsData);
     } catch (err) {
-      setError("Error cargando ventas");
+      console.error("Error cargando transacciones:", err);
+      setError("Error cargando transacciones");
     }
   };
 
@@ -147,7 +157,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         if (targetStore) {
           await persistStoreSelection(targetStore);
           await Promise.all([
-            loadSalesForStore(targetStore.id),
+            loadTransactionsForStore(targetStore.id),
             loadProductsForStore(targetStore.id)
           ]);
         }
@@ -166,41 +176,55 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getSaleProducts = async (saleId: string) => {
+  const getTransactionProducts = async (transactionId: string) => {
     try {
-      return await SalesService.getSaleProducts(saleId);
+      return await TransactionsService.getTransactionProducts(transactionId);
     } catch (error) {
       console.error("Error obteniendo productos:", error);
       return [];
     }
   };
 
-  const handleCreateSale = async (saleData: any) => {
+  const handleCreateTransaction = async (transactionData: any) => {
     try {
-      const newSale = await SalesService.createSale(saleData);
-      await loadSalesForStore(selectedStore.id);
-      return newSale;
+      console.log("Creando transacción en DbProvider:", transactionData);
+      const newTransaction = await TransactionsService.createTransaction(transactionData);
+      console.log("Transacción creada con éxito:", newTransaction);
+      
+      // Refrescar transacciones y productos después de crear una transacción
+      if (selectedStore?.id) {
+        console.log("Actualizando datos después de crear transacción...");
+        await Promise.all([
+          loadTransactionsForStore(selectedStore.id), 
+          loadProductsForStore(selectedStore.id)
+        ]);
+        console.log("Datos actualizados correctamente");
+      } else {
+        console.warn("No hay tienda seleccionada para refrescar datos");
+      }
+      
+      return newTransaction;
     } catch (error) {
-      console.error("Error en DbProvider al crear venta:", error);
+      console.error("Error en DbProvider al crear transacción:", error);
       if (error instanceof Error) {
         throw error;
       } else {
-        throw new Error("Error desconocido al crear la venta");
+        throw new Error("Error desconocido al crear la transacción");
       }
     }
   };
 
-  const handleUpdateSale = async (saleId: string, updatedData: any) => {
+  const handleUpdateTransaction = async (transactionId: string, updatedData: any) => {
     try {
-      const result = await SalesService.updateSale(saleId, updatedData);
-      await loadSalesForStore(selectedStore.id);
+      const result = await TransactionsService.updateTransaction(transactionId, updatedData);
+      await loadTransactionsForStore(selectedStore.id);
       return result;
     } catch (error) {
-      console.error("Error en DbProvider al actualizar venta:", error);
+      console.error("Error en DbProvider al actualizar transacción:", error);
       if (error instanceof Error) {
         throw error;
       } else {
-        throw new Error("Error desconocido al actualizar la venta");
+        throw new Error("Error desconocido al actualizar la transacción");
       }
     }
   };
@@ -212,7 +236,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (selectedStore?.id) {
       Promise.all([
-        loadSalesForStore(selectedStore.id),
+        loadTransactionsForStore(selectedStore.id),
         loadProductsForStore(selectedStore.id)
       ]);
     }
@@ -223,7 +247,7 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         stores,
-        sales,
+        transactions,
         customers,
         employees,
         products,
@@ -233,10 +257,10 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         error,
         refreshData: loadAllData,
         setSelectedStore: persistStoreSelection,
-        createSale: handleCreateSale,
-        updateSale: handleUpdateSale,
-        getStatusDisplay: SalesService.getStatusDisplay,
-        getSaleProducts
+        createTransaction: handleCreateTransaction,
+        updateTransaction: handleUpdateTransaction,
+        getStatusDisplay: TransactionsService.getStatusDisplay,
+        getTransactionProducts
       }}
     >
       {children}

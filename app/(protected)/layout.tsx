@@ -37,7 +37,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
   const pageNames: Record<string, string> = {
     "/": "Inicio",
     "/dashboard": "Dashboard",
-    "/sales": "Sales",
+    "/transactions": "Transacciones",
     "/inventory": "Inventory",
     "/personal": "Personal",
   };

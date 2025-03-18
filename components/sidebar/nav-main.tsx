@@ -39,10 +39,10 @@ export function NavMain() {
         active: pathname === "/dashboard" || pathname.startsWith("/dashboard"),
       },
       {
-        name: "Sales",
+        name: "Transactions",
         icon: Wallet,
-        href: "/sales",
-        active: pathname === "/sales" || pathname.startsWith("/sales/"),
+        href: "/transactions",
+        active: pathname === "/transactions" || pathname.startsWith("/transactions/"),
       },
       {
         name: "Team Chat",
