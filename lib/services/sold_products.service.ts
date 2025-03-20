@@ -16,7 +16,8 @@ export const SoldProductsService = {
       const { data, error } = await createClient()
         .from("sold_products")
         .select("*")
-        .eq("transaction_id", transactionId);
+        .eq("transaction_id", transactionId)
+        .order("id", { ascending: false });
 
       if (error) {
         console.error("Error al obtener productos vendidos:", error);
@@ -40,7 +41,8 @@ export const SoldProductsService = {
       const { data, error } = await createClient()
         .from("sold_products")
         .select("*")
-        .in("transaction_id", transactionIds);
+        .in("transaction_id", transactionIds)
+        .order("id", { ascending: false });
 
       if (error) {
         console.error("Error al obtener productos vendidos para múltiples transacciones:", error);

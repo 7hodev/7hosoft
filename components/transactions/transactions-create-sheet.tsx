@@ -28,7 +28,6 @@ import { Product } from "@/lib/services/products.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Toaster } from "@/components/ui/sonner";
 import { useModal } from "@/components/contexts/modal-context";
 import {
   Drawer,
@@ -39,24 +38,25 @@ import {
 } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Trash2, ShoppingCart, CreditCard, X } from "lucide-react";
+import { Trash2, ShoppingCart, CreditCard, X, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomerCreateSheet } from "@/components/customer/customer-create-sheet";
 
 // Definir un tipo para los productos seleccionados
 type SelectedProduct = Product & { quantity: number | string };
 
-interface TransactionsCreateDialogProps {
+interface TransactionsCreateSheetProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function TransactionsCreateDialog({
+export function TransactionsCreateSheet({
   isOpen,
   onOpenChange,
-}: TransactionsCreateDialogProps) {
+}: TransactionsCreateSheetProps) {
   const {
     selectedStore,
     customers,
@@ -66,8 +66,18 @@ export function TransactionsCreateDialog({
     refreshData,
   } = useDb();
 
+  // Use controlled state if isOpen is provided, otherwise internal state
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isOpen !== undefined ? isOpen : internalOpen;
+  
+  const handleOpenChange = (value: boolean) => {
+    setInternalOpen(value);
+    if (onOpenChange) {
+      onOpenChange(value);
+    }
+  };
+
   // Estados principales
-  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     customer_id: "",
     employee_id: "",
@@ -84,6 +94,7 @@ export function TransactionsCreateDialog({
   );
   const [isDeductible, setIsDeductible] = useState<boolean>(false);
   const [expenseAmount, setExpenseAmount] = useState<string>("0");
+  const [recipientType, setRecipientType] = useState<"other" | "employee">("other");
 
   // Estados auxiliares
   const [mounted, setMounted] = useState(false);
@@ -130,7 +141,7 @@ export function TransactionsCreateDialog({
     setMounted(true);
 
     if (isOpen !== undefined) {
-      setOpen(isOpen);
+      setInternalOpen(isOpen);
     }
 
     if (open) {
@@ -168,13 +179,6 @@ export function TransactionsCreateDialog({
   }, [formData.employee_id, employees]);
 
   // Funciones auxiliares
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (onOpenChange) {
-      onOpenChange(newOpen);
-    }
-  };
-
   const getStatusText = () => {
     switch (selectedStatus) {
       case "completed":
@@ -246,22 +250,22 @@ export function TransactionsCreateDialog({
   };
 
   const resetForm = () => {
+    setSelectedProducts([]);
+    setTransactionType("income");
+    setTransactionCategory("sales");
+    setSelectedStatus("completed");
+    setTransactionDescription("");
+    setPaymentMethod("cash");
+    setIsDeductible(false);
+    setExpenseAmount("0");
     setFormData({
       customer_id: "",
       employee_id: "",
       recipient: "",
     });
-    setSelectedStatus("completed");
-    setTransactionDescription("");
-    setPaymentMethod("cash");
-    setSelectedProducts([]);
-    setShowStockWarning(null);
-    setError(null);
-    setTransactionType("income");
-    setTransactionCategory("sales");
     setTransactionDate(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
-    setIsDeductible(false);
-    setExpenseAmount("0");
+    setError(null);
+    setShowStockWarning(null);
   };
 
   const resetFormExceptType = (type: TransactionType) => {
@@ -335,6 +339,22 @@ export function TransactionsCreateDialog({
     });
   };
 
+  // Antes de handleSubmit, añadir esta función para actualizar los campos del formulario
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Función para calcular el total de los productos seleccionados
+  const calculateTotal = (): number => {
+    return selectedProducts.reduce(
+      (total, product) => total + (Number(product.price) || 0) * (Number(product.quantity) || 0),
+      0
+    );
+  };
+
   // Validar y enviar formulario
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -345,7 +365,7 @@ export function TransactionsCreateDialog({
     setError(null);
     
     try {
-      console.log("🔄 CREANDO TRANSACCIÓN:", transactionType, transactionCategory);
+      console.log("CREANDO TRANSACCIÓN:", transactionType, transactionCategory);
       
       // Inicializamos datos básicos
       const transactionData: any = {
@@ -353,67 +373,65 @@ export function TransactionsCreateDialog({
         category: transactionCategory,
         status: 'completed',
         payment_method: paymentMethod,
-        sale_date: `${transactionDate}`,
+        // Usar la fecha local tal como se capturó en el formulario
+        sale_date: transactionDate,
         description: transactionDescription || null,
         store_id: selectedStore.id,
       };
-      
-      console.log("🔄 STORE ID:", selectedStore.id);
-      
-      // Si es un gasto
-      if (transactionType === 'expense') {
-        console.log("🔄 DATOS DE TRANSACCIÓN TIPO GASTO");
-        transactionData.total_amount = parseFloat(expenseAmount);
-        transactionData.deductible = isDeductible;
-        
-        // IMPORTANTE: Asegurarse que el recipient nunca sea null o undefined para gastos
-        console.log("🔄 DESTINATARIO ORIGINAL:", formData.recipient);
-        transactionData.recipient = formData.recipient || "Sin destinatario";
-        console.log("🔄 DESTINATARIO FINAL:", transactionData.recipient);
-        
-        // No asociamos cliente o empleado
-        transactionData.customer_id = null;
-        transactionData.employee_id = null;
+
+      // Validación básica
+      if (!selectedStore?.id) {
+        console.error("No store selected");
+        toast.error("Error: No se ha seleccionado ninguna tienda");
+        return;
       }
-      // Si es un ingreso
-      else {
-        console.log("🔄 DATOS DE TRANSACCIÓN TIPO INGRESO");
-        
-        // Añadir IDs de cliente y empleado
-        transactionData.customer_id = formData.customer_id;
-        transactionData.employee_id = formData.employee_id;
-        
-        // En ningún caso añadimos recipient para ingresos
-        transactionData.recipient = null;
-        
-        // Si es una venta
-        if (transactionCategory === 'sales') {
-          console.log("🔄 PROCESANDO VENTA CON PRODUCTOS");
-          
-          // Calcular total y productos
-          const totalAmount = selectedProducts.reduce(
-            (sum, item) => sum + item.price * Number(item.quantity),
-            0
-          );
-          console.log("🔄 TOTAL CALCULADO:", totalAmount);
-          
-          transactionData.total_amount = totalAmount;
-          transactionData.products = selectedProducts.map(item => ({
-            id: item.id,
-            quantity: Number(item.quantity)
-          }));
-        } 
-        // Si es otro tipo de ingreso
-        else {
-          console.log("🔄 PROCESANDO OTRO TIPO DE INGRESO");
-          transactionData.total_amount = parseFloat(expenseAmount);
-          // NO AGREGAR PRODUCTOS si no es categoría ventas
-          transactionData.products = [];
+      
+      if (transactionType === 'income' && !formData.customer_id) {
+        toast.error("Selecciona un cliente para la transacción");
+        return;
+      }
+      
+      if (!transactionDate) {
+        toast.error("Selecciona una fecha para la transacción");
+        return;
+      }
+      
+      if (transactionType === 'expense' && !formData.recipient && recipientType !== 'employee') {
+        toast.error("Ingresa un destinatario para el gasto");
+        return;
+      }
+      
+      const finalAmount = transactionType === 'income' 
+        ? (transactionCategory === 'sales' ? calculateTotal() : parseFloat(expenseAmount) || 0) 
+        : parseFloat(expenseAmount) || 0;
+      
+      if (isNaN(finalAmount) || finalAmount <= 0) {
+        toast.error("El monto debe ser mayor a 0");
+        return;
+      }
+      
+      // Para gastos, asegurar que recipient esté definido
+      let recipientValue = formData.recipient;
+      
+      if (transactionType === 'expense') {
+        if (recipientType === 'employee' && formData.employee_id) {
+          const employee = employees.find(e => e.id === formData.employee_id);
+          recipientValue = employee?.name || "Empleado";
+        } else if (!recipientValue) {
+          recipientValue = "Sin destinatario";
         }
       }
-      
-      console.log("✅ DATOS FINALES DE TRANSACCIÓN:", transactionData);
-      
+
+      // Construir datos de la transacción
+      transactionData.customer_id = formData.customer_id || '';
+      transactionData.employee_id = formData.employee_id || '';
+      transactionData.recipient = recipientValue;
+      transactionData.total_amount = finalAmount;
+      transactionData.products = selectedProducts.map(p => ({
+        id: p.id,
+        quantity: p.quantity
+      }));
+
       // Crear la transacción
       const result = await createTransaction(transactionData);
       console.log("✅ TRANSACCIÓN CREADA:", result);
@@ -837,21 +855,38 @@ export function TransactionsCreateDialog({
             
             <div className="space-y-2 mb-4">
               <Label htmlFor="customer">Cliente</Label>
-              <Select
-                value={formData.customer_id}
-                onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
-              >
-                <SelectTrigger id="customer">
-                  <SelectValue placeholder={customerDisplayName} />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={formData.customer_id}
+                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                  >
+                    <SelectTrigger id="customer">
+                      <SelectValue placeholder={customerDisplayName} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <CustomerCreateSheet
+                  onSuccess={() => refreshData()}
+                >
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10"
+                    title="Crear nuevo cliente"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </CustomerCreateSheet>
+              </div>
             </div>
 
             <div className="space-y-2 mb-4">
@@ -1162,7 +1197,6 @@ export function TransactionsCreateDialog({
           </Button>
         </SheetTrigger>
         <SheetContent className="sm:max-w-3xl p-0">
-          <Toaster position="top-right" />
           <SheetHeader className="sticky top-0 left-0 right-0 bg-background px-6 h-20 border-b flex flex-col justify-center z-10">
             <div className="flex flex-col items-center">
               <SheetTitle className="text-xl">
@@ -1213,7 +1247,6 @@ export function TransactionsCreateDialog({
         </Button>
 
         <DrawerContent className="max-h-[90vh]">
-          <Toaster position="top-right" />
           <DrawerHeader>
             <DrawerTitle className="text-xl">
               Registrar nueva Transacción de {selectedStore?.name}

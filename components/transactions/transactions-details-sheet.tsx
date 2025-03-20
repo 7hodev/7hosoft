@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toZonedTime } from "date-fns-tz";
 import { 
   Sheet, 
   SheetContent, 
@@ -25,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { TransactionsEditDialog } from "./transactions-edit-dialog";
+import { TransactionsEditSheet } from "./transactions-edit-sheet";
 import { Transaction, TransactionsService } from "@/lib/services/transactions.service";
 import { Customer, CustomersService } from "@/lib/services/customers.service";
 import { Employee, EmployeesService } from "@/lib/services/employees.service";
@@ -234,6 +235,7 @@ export const TransactionDetailsSheet = ({
   };
 
   const formatCurrency = (amount: number, includeSymbol: boolean = true) => {
+    if (isNaN(amount)) amount = 0;
     return new Intl.NumberFormat("es-CO", {
       style: includeSymbol ? 'currency' : 'decimal',
       currency: "COP",
@@ -242,9 +244,7 @@ export const TransactionDetailsSheet = ({
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "dd 'de' MMMM 'de' yyyy 'a las' HH:mm", {
-      locale: es
-    });
+    return TransactionsService.formatLocalDate(dateString, "dd 'de' MMMM 'de' yyyy 'a las' HH:mm");
   };
 
   const getCategoryText = (category: string): string => {
@@ -376,7 +376,7 @@ export const TransactionDetailsSheet = ({
                 <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="font-bold text-lg">{formatCurrency(transactionAmount)}</p>
+                  <p className="font-bold text-lg">{formatCurrency(Number(transactionAmount))}</p>
                 </div>
               </div>
             </div>
@@ -476,11 +476,11 @@ export const TransactionDetailsSheet = ({
                     <div>
                       <p className="font-medium">{item.product?.name || "Producto desconocido"}</p>
                       <p className="text-sm text-muted-foreground">
-                        {item.quantity} x {formatCurrency(item.product?.price || 0, false).replace('COP', '').trim()}
+                        {item.quantity} x {formatCurrency(Number(item.product?.price || 0), false).replace('COP', '').trim()}
                       </p>
                     </div>
                     <p className="font-medium">
-                      {formatCurrency((item.product?.price || 0) * item.quantity)}
+                      {formatCurrency(Number((item.product?.price || 0) * item.quantity))}
                     </p>
                   </div>
                 ))}
@@ -488,7 +488,7 @@ export const TransactionDetailsSheet = ({
               <div className="p-4 bg-muted/50 flex items-center justify-between">
                 <p className="font-semibold">Total</p>
                 <p className="font-semibold">
-                  {formatCurrency(transaction.total_amount)}
+                  {formatCurrency(Number(transaction.total_amount))}
                 </p>
               </div>
             </CardContent>
@@ -876,10 +876,10 @@ export const TransactionDetailsSheet = ({
                   <Text style={styles.col2}>{item.product?.name || "Producto desconocido"}</Text>
                   <Text style={styles.col3}>{item.quantity}</Text>
                   <Text style={styles.col4}>
-                    {formatCurrency(item.product?.price || 0, false).replace('COP', '').trim()}
+                    {formatCurrency(Number(item.product?.price || 0), false).replace('COP', '').trim()}
                   </Text>
                   <Text style={styles.col5}>
-                    {formatCurrency((item.product?.price || 0) * item.quantity, false).replace('COP', '').trim()}
+                    {formatCurrency(Number((item.product?.price || 0) * item.quantity), false).replace('COP', '').trim()}
                   </Text>
                 </View>
               ))}
@@ -890,7 +890,7 @@ export const TransactionDetailsSheet = ({
             <View style={[styles.row, { justifyContent: 'flex-end' }]}>
               <Text style={styles.totalLabel}>TOTAL:</Text>
               <Text style={styles.totalValue}>
-                {formatCurrency(currentTransaction.total_amount)}
+                {formatCurrency(Number(currentTransaction.total_amount || 0))}
               </Text>
             </View>
           </View>
@@ -912,8 +912,8 @@ export const TransactionDetailsSheet = ({
       <>
         <Sheet open={actualOpen} onOpenChange={onOpenChange}>
           <SheetContent 
-            className="min-w-max p-0 flex flex-col"
             side="left"
+            className="w-full lg:max-w-3xl xl:max-w-6xl overflow-y-auto"
           >
             <SheetHeader className="p-6 text-left">
               <SheetTitle className="text-2xl">
@@ -927,7 +927,7 @@ export const TransactionDetailsSheet = ({
           </SheetContent>
         </Sheet>
         
-        <TransactionsEditDialog 
+        <TransactionsEditSheet 
           transactionId={transaction?.id || ""} 
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
@@ -976,7 +976,7 @@ export const TransactionDetailsSheet = ({
           </DrawerContent>
         </Drawer>
         
-        <TransactionsEditDialog 
+        <TransactionsEditSheet 
           transactionId={transaction?.id || ""} 
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}

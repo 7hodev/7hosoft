@@ -33,28 +33,28 @@ export function NavMain() {
 
     navMain: [
       {
-        name: "Home",
+        name: "Inicio",
         icon: Home,
         href: "/dashboard",
         active: pathname === "/dashboard" || pathname.startsWith("/dashboard"),
       },
       {
-        name: "Transactions",
+        name: "Finanzas",
         icon: Wallet,
-        href: "/transactions",
-        active: pathname === "/transactions" || pathname.startsWith("/transactions/"),
+        href: "/finance",
+        active: pathname === "/finance" || pathname.startsWith("/finance/"),
       },
       {
-        name: "Team Chat",
-        icon: MessageSquare,
-        href: "/chat",
-        active: pathname === "/chat" || pathname.startsWith("/chat/"),
-      },
-      {
-        name: "Inventory",
+        name: "Inventario",
         icon: Box,
         href: "/inventory",
         active: pathname === "/inventory" || pathname.startsWith("/inventory/"),
+      },
+      {
+        name: "Clientes",
+        icon: MessageSquare,
+        href: "/customer",
+        active: pathname === "/customer" || pathname.startsWith("/customer/"),
       },
       {
         name: "Personal",

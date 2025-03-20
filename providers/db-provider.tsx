@@ -8,12 +8,24 @@ import { StoresService } from "@/lib/services/stores.service";
 import { UsersService } from "@/lib/services/users.service";
 import { CustomersService } from "@/lib/services/customers.service";
 import { EmployeesService } from "@/lib/services/employees.service";
-import { UserSettingsService } from "@/lib/services/user_settings.service";
+import { UserSettingsService, PersonType, UserSettings } from "@/lib/services/user_settings.service";
 import { ProductsService, Product } from "@/lib/services/products.service";
 import { SoldProductsService, SoldProduct } from "@/lib/services/sold_products.service";
 
+// Extend AppUser to include settings
+interface AppUser {
+  id: string;
+  email?: string;
+  display_name: string;
+  metadata: {
+    avatar_url: string;
+    provider: string;
+  };
+  settings?: UserSettings;
+}
+
 type AppData = {
-  user: any;
+  user: AppUser | null;
   stores: any[];
   transactions: any[];
   customers: any[];
@@ -29,6 +41,8 @@ type AppData = {
   updateTransaction: (transactionId: string, updatedData: any) => Promise<any>;
   getStatusDisplay: (status: TransactionStatus) => StatusDisplayInfo;
   getTransactionProducts: (transactionId: string) => Promise<{ product: Product; soldProduct: SoldProduct }[]>;
+  updatePersonType: (personType: PersonType) => Promise<any>;
+  getUserSettings: () => Promise<any>;
 };
 
 const DbContext = createContext<AppData>({
@@ -48,11 +62,13 @@ const DbContext = createContext<AppData>({
   updateTransaction: async () => {},
   getStatusDisplay: () => ({ text: "", className: "" }),
   getTransactionProducts: async () => [],
+  updatePersonType: async () => {},
+  getUserSettings: async () => null,
 });
 
 export function DbProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [stores, setStores] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -62,6 +78,46 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Función para actualizar el tipo de persona
+  const handleUpdatePersonType = async (personType: PersonType) => {
+    if (!user) {
+      console.error("No hay usuario activo");
+      return;
+    }
+
+    try {
+      const result = await UserSettingsService.updatePersonType(user.id, personType);
+      // Actualizar el objeto de usuario con los nuevos settings
+      const settings = await UserSettingsService.getUserSettings(user.id);
+      
+      // Usar una copia del usuario y añadir settings con aserción de tipo
+      const updatedUser = { ...user } as AppUser;
+      updatedUser.settings = settings as UserSettings;
+      setUser(updatedUser);
+      
+      console.log(`Tipo de persona actualizado a: ${personType}`);
+      return result;
+    } catch (error) {
+      console.error("Error al actualizar tipo de persona:", error);
+      throw error;
+    }
+  };
+
+  // Función para obtener la configuración completa del usuario
+  const handleGetUserSettings = async () => {
+    if (!user) {
+      console.error("No hay usuario activo");
+      return null;
+    }
+
+    try {
+      return await UserSettingsService.getUserSettings(user.id);
+    } catch (error) {
+      console.error("Error al obtener configuración de usuario:", error);
+      return null;
+    }
+  };
 
   const persistStoreSelection = async (store: any) => {
     if (!store?.id) {
@@ -127,11 +183,11 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      let user = null;
+      let currentUser = null;
       let retries = 0;
-      while (!user && retries < 3) {
-        user = await UsersService.getCurrentUser();
-        if (!user) {
+      while (!currentUser && retries < 3) {
+        currentUser = await UsersService.getCurrentUser();
+        if (!currentUser) {
           retries++;
           if (retries < 3) {
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -139,14 +195,20 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      setUser(user);
+      if (currentUser) {
+        // Obtener la configuración del usuario
+        const settings = await UserSettingsService.getUserSettings(currentUser.id);
+        
+        // Usar una copia y aserciones de tipo para añadir settings
+        const updatedUser = { ...currentUser } as AppUser;
+        updatedUser.settings = settings as UserSettings;
+        setUser(updatedUser);
 
-      if (user) {
-        const storesData = await StoresService.getUserStores(user.id);
+        const storesData = await StoresService.getUserStores(currentUser.id);
         setStores(storesData);
 
         const [dbStoreId, localStore] = await Promise.all([
-          UserSettingsService.getLastStore(user.id),
+          UserSettingsService.getLastStore(currentUser.id),
           JSON.parse(localStorage.getItem("selectedStore") || "null")
         ]);
 
@@ -162,14 +224,18 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
           ]);
         }
 
+        // Cargar clientes directamente asociados con el usuario
         const [customersData, employeesData] = await Promise.all([
-          CustomersService.getUserCustomers(user.id),
-          EmployeesService.getUserEmployees(user.id)
+          CustomersService.getAllUserCustomers(currentUser.id),
+          EmployeesService.getUserEmployees(currentUser.id)
         ]);
+        
+        console.log("Clientes cargados:", customersData.length);
         setCustomers(customersData);
         setEmployees(employeesData);
       }
     } catch (err) {
+      console.error("Error cargando datos:", err);
       setError(err instanceof Error ? err.message : "Error cargando datos");
     } finally {
       setLoading(false);
@@ -191,17 +257,8 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
       const newTransaction = await TransactionsService.createTransaction(transactionData);
       console.log("Transacción creada con éxito:", newTransaction);
       
-      // Refrescar transacciones y productos después de crear una transacción
-      if (selectedStore?.id) {
-        console.log("Actualizando datos después de crear transacción...");
-        await Promise.all([
-          loadTransactionsForStore(selectedStore.id), 
-          loadProductsForStore(selectedStore.id)
-        ]);
-        console.log("Datos actualizados correctamente");
-      } else {
-        console.warn("No hay tienda seleccionada para refrescar datos");
-      }
+      // Programar una actualización completa para refrescar tanto las transacciones como los clientes
+      await loadAllData();
       
       return newTransaction;
     } catch (error) {
@@ -217,7 +274,10 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
   const handleUpdateTransaction = async (transactionId: string, updatedData: any) => {
     try {
       const result = await TransactionsService.updateTransaction(transactionId, updatedData);
-      await loadTransactionsForStore(selectedStore.id);
+      
+      // Programar una actualización completa para refrescar tanto las transacciones como los clientes
+      await loadAllData();
+      
       return result;
     } catch (error) {
       console.error("Error en DbProvider al actualizar transacción:", error);
@@ -235,10 +295,18 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (selectedStore?.id) {
-      Promise.all([
-        loadTransactionsForStore(selectedStore.id),
-        loadProductsForStore(selectedStore.id)
-      ]);
+      // Use let to set initial state to make sure this runs only once when selectedStore changes
+      // and not on every render
+      let isMounted = true;
+      if (isMounted) {
+        Promise.all([
+          loadTransactionsForStore(selectedStore.id),
+          loadProductsForStore(selectedStore.id)
+        ]);
+      }
+      return () => {
+        isMounted = false;
+      };
     }
   }, [selectedStore?.id]);
 
@@ -260,7 +328,9 @@ export function DbProvider({ children }: { children: React.ReactNode }) {
         createTransaction: handleCreateTransaction,
         updateTransaction: handleUpdateTransaction,
         getStatusDisplay: TransactionsService.getStatusDisplay,
-        getTransactionProducts
+        getTransactionProducts,
+        updatePersonType: handleUpdatePersonType,
+        getUserSettings: handleGetUserSettings
       }}
     >
       {children}

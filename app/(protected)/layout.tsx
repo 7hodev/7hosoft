@@ -28,6 +28,7 @@ import { TeamSwitcher } from "@/components/sidebar/team-switcher";
 import { BottomNav } from "@/components/sidebar/nav-responsive";
 import { Toaster } from "@/components/ui/sonner"
 import { useModal } from "@/components/contexts/modal-context";
+import { ConfigProvider } from "@/components/contexts/config-context";
 
 function AppContent({ children }: { children: React.ReactNode }) {
   const { isMobile } = useSidebar();
@@ -36,9 +37,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
   const pageNames: Record<string, string> = {
     "/": "Inicio",
-    "/dashboard": "Dashboard",
-    "/transactions": "Transacciones",
-    "/inventory": "Inventory",
+    "/dashboard": "Inicio",
+    "/finance": "Finanzas",
+    "/inventory": "Inventario",
+    "/customer": "Clientes",
     "/personal": "Personal",
   };
 
@@ -95,26 +97,28 @@ function AppContent({ children }: { children: React.ReactNode }) {
       </header>
       <div className="flex-1 overflow-auto overscroll-none">
         <div className="flex flex-1 flex-col gap-2 p-2 md:p-5 pb-20 lg:pb-0">{children}</div>
-        <Toaster />
-        
       </div>
     </SidebarInset>
   );
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-
   return (
     <DbProvider>
-      <SidebarProvider>
-        <div className="fixed inset-0 flex overflow-hidden">
-          <AppSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <AppContent>{children}</AppContent>
-          </div>
-          <BottomNav />
-        </div>
-      </SidebarProvider>
+      <LocaleProvider>
+        <ConfigProvider>
+          <SidebarProvider>
+            <div className="fixed inset-0 flex overflow-hidden">
+              <AppSidebar />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <AppContent>{children}</AppContent>
+              </div>
+              <BottomNav />
+            </div>
+            <Toaster position="top-right" />
+          </SidebarProvider>
+        </ConfigProvider>
+      </LocaleProvider>
     </DbProvider>
   );
 }

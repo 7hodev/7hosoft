@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { useDb } from "@/providers/db-provider";
-import { TransactionsCreateDialog } from "@/components/transactions/transactions-create-dialog";
-import { TransactionDetailsSheet } from "@/components/transactions/transaction-details-sheet";
+import { TransactionsCreateSheet } from "@/components/transactions/transactions-create-sheet";
+import { TransactionDetailsSheet } from "@/components/transactions/transactions-details-sheet";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { TransactionStatus, TransactionType } from "@/lib/services/transactions.service";
+import { TransactionStatus, TransactionType, TransactionsService } from "@/lib/services/transactions.service";
 import { Search, Filter, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -34,6 +34,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  ColumnDef,
+} from "@tanstack/react-table";
+import { toZonedTime } from 'date-fns-tz';
 
 export function TransactionsTable() {
   const {
@@ -56,6 +63,11 @@ export function TransactionsTable() {
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Función para formatear fecha en zona horaria local
+  const formatDate = (dateString: string) => {
+    return TransactionsService.formatLocalDate(dateString, "dd/MM/yyyy HH:mm");
+  };
 
   const getCustomerName = (customerId: string) => {
     const customer = customers.find((c) => c.id === customerId);
@@ -126,18 +138,85 @@ export function TransactionsTable() {
     // Filtro por fecha
     if (filterDate) {
       try {
-        // Convertir a fecha comparable con date-fns v4
-        const transactionDateStr = format(parseISO(transaction.sale_date), "yyyy-MM-dd");
+        const localDate = TransactionsService.convertToLocalDate(transaction.sale_date);
+        const transactionDateStr = format(localDate, "yyyy-MM-dd");
         if (transactionDateStr !== filterDate) {
           return false;
         }
       } catch (error) {
-        return true; // En caso de error, mostrar la transacción
+        return true;
       }
     }
 
     return true;
   });
+
+  // Definir las columnas para la tabla
+  const columns: ColumnDef<any>[] = [
+    {
+      accessorKey: "sale_date",
+      header: "Fecha",
+      cell: ({ row }) => {
+        return formatDate(row.original.sale_date);
+      },
+    },
+    {
+      accessorKey: "type",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const type = row.original.type;
+        return (
+          <Badge
+            className={`${
+              type === "income"
+                ? "bg-green-100 hover:bg-green-200 text-green-700"
+                : "bg-red-100 hover:bg-red-200 text-red-700"
+            }`}
+          >
+            {type === "income" ? "Ingreso" : "Gasto"}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "description",
+      header: "Descripción",
+      cell: ({ row }) => {
+        return <span className="max-w-[200px] truncate">{row.original.description || "-"}</span>;
+      },
+    },
+    {
+      accessorKey: "category",
+      header: "Categoría",
+      cell: ({ row }) => {
+        return getCategoryDisplayName(row.original.category);
+      },
+    },
+    {
+      accessorKey: "total_amount",
+      header: "Monto",
+      cell: ({ row }) => {
+        const type = row.original.type;
+        return (
+          <span className={`font-medium ${
+            type === "income" ? "text-green-600" : "text-red-600"
+          }`}>
+            {formatPrice(row.original.total_amount, type)}
+          </span>
+        );
+      },
+    },
+  ];
+
+  // Configurar la tabla con TanStack Table
+  const table = useReactTable({
+    data: filteredTransactions,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  // Memoizar solo las transacciones filtradas para evitar ciclos de renderizado
+  const memoizedFilteredTransactions = React.useMemo(() => filteredTransactions, [filteredTransactions]);
 
   // Restablecer todos los filtros
   const resetFilters = () => {
@@ -151,7 +230,6 @@ export function TransactionsTable() {
   
   // Función para refrescar datos después de editar o eliminar
   const handleTransactionUpdate = () => {
-    // Actualizar los datos si es necesario o simplemente cerrar el detalle
     setSelectedTransactionId(null);
   };
 
@@ -289,36 +367,30 @@ export function TransactionsTable() {
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
-                <TableHead className="w-[20%]">Fecha</TableHead>
-                <TableHead className="w-[15%]">Tipo</TableHead>
-                <TableHead className="w-[30%]">Descripción</TableHead>
-                <TableHead className="w-[15%]">Categoría</TableHead>
-                <TableHead className="w-[20%]">Monto</TableHead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTransactions.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-4 text-muted-foreground"
-                  >
-                    {transactions.length === 0
-                      ? "No hay transacciones registradas"
-                      : "No se encontraron resultados con los filtros actuales"}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTransactions.map((transaction) => (
-                  <TableRow 
+              {memoizedFilteredTransactions.length ? (
+                memoizedFilteredTransactions.map((transaction) => (
+                  <TableRow
                     key={transaction.id}
                     className="hover:bg-muted/50 cursor-pointer"
                     onClick={() => setSelectedTransactionId(transaction.id)}
                   >
                     <TableCell>
-                      {format(parseISO(transaction.sale_date), "dd/MM/yyyy HH:mm", {
-                        locale: es,
-                      })}
+                      {formatDate(transaction.sale_date)}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -344,6 +416,17 @@ export function TransactionsTable() {
                     </TableCell>
                   </TableRow>
                 ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-center py-4 text-muted-foreground"
+                  >
+                    {transactions.length === 0
+                      ? "No hay transacciones registradas"
+                      : "No se encontraron resultados con los filtros actuales"}
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>

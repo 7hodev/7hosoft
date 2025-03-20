@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Settings, User, Store, ArrowLeft, LogOut } from "lucide-react";
-import { AccountConfig, StoreConfig } from "@/components/config/config-pages";
+import { Settings, User, Store, ArrowLeft, LogOut, Briefcase } from "lucide-react";
+import { AccountConfig } from "@/components/config/config-pages";
+import { BusinessConfig } from "@/components/config/business-config";
 
 export function ButtonConfig({ 
   onOpen, 
@@ -102,12 +103,12 @@ export function ButtonConfig({
           Cuenta
         </Button>
         <Button
-          variant={selectedSection === "stores" ? "secondary" : "ghost"}
+          variant={selectedSection === "business" ? "secondary" : "ghost"}
           className="w-full justify-start gap-2"
-          onClick={() => isMobile ? handleMobileSelection("stores") : setSelectedSection("stores")}
+          onClick={() => isMobile ? handleMobileSelection("business") : setSelectedSection("business")}
         >
-          <Store className="h-4 w-4" />
-          Tiendas
+          <Briefcase className="h-4 w-4" />
+          Negocio
         </Button>
 
         <Separator className="my-4" />
@@ -123,13 +124,13 @@ export function ButtonConfig({
         </Button>
         <h2 className="text-lg font-semibold">
           {selectedSection === "account" && "Cuenta"}
-          {selectedSection === "stores" && "Tiendas"}
+          {selectedSection === "business" && "Negocio"}
         </h2>
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto">
         {selectedSection === "account" && <AccountConfig />}
-        {selectedSection === "stores" && <StoreConfig />}
+        {selectedSection === "business" && <BusinessConfig />}
       </div>
     </div>
   );
@@ -163,12 +164,16 @@ export function ButtonConfig({
             <DialogHeader className="text-left mb-6">
               <DialogTitle className="text-2xl">
                 {selectedSection === "account" && "Configuración de Cuenta"}
-                {selectedSection === "stores" && "Administrar Tiendas"}
+                {selectedSection === "business" && "Configuración del Negocio"}
               </DialogTitle>
               <DialogDescription className="m-0 p-0">
               </DialogDescription>
             </DialogHeader>
-            {selectedSection === "account" ? <AccountConfig /> : <StoreConfig />}
+            {selectedSection === "account" ? (
+              <AccountConfig />
+            ) : selectedSection === "business" ? (
+              <BusinessConfig />
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

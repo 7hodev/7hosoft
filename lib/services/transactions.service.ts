@@ -1,4 +1,6 @@
 import { createClient } from "@/utils/supabase/client";
+import { format, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export type TransactionStatus = "pending" | "completed" | "canceled" | "refunded";
 export type TransactionType = "income" | "expense";
@@ -60,7 +62,7 @@ export const TransactionsService = {
       .from("transactions")
       .select("*")
       .eq("store_id", storeId)
-      .order("sale_date", { ascending: false });
+      .order("id", { ascending: false });
 
     if (error) {
       console.error("Error en consulta de transacciones:", error);
@@ -75,6 +77,7 @@ export const TransactionsService = {
     store_id: string;
     customer_id: string;
     employee_id: string;
+    recipient?: string;
     sale_date: string;
     status: TransactionStatus;
     total_amount: number;
@@ -94,10 +97,19 @@ export const TransactionsService = {
         hasProducts: transactionData.products && transactionData.products.length > 0,
       });
 
-      // Asegurar que la fecha incluya la hora actual
-      const saleDate = transactionData.sale_date.includes('T') 
-        ? transactionData.sale_date 
-        : `${transactionData.sale_date}T${new Date().toISOString().slice(11, 23)}`;
+      // Usar el método estandarizado para obtener la fecha actual
+      // Si se proporciona una fecha, la usamos tal cual, de lo contrario usamos la fecha actual local
+      const dateToUse = transactionData.sale_date || TransactionsService.getCurrentLocalTimestamp();
+      
+      console.log("Fecha utilizada para la transacción:", dateToUse);
+
+      // Asegurar que recipient siempre esté definido para gastos
+      if (transactionData.type === 'expense' && !transactionData.recipient) {
+        console.log("Estableciendo recipient por defecto para transacción de tipo gasto");
+        transactionData.recipient = "Sin destinatario";
+      }
+      
+      console.log("RECIPIENT FINAL PARA BASE DE DATOS:", transactionData.recipient);
 
       // 1. Crear transacción de manera simple y directa
       const { data: transaction, error: transactionError } = await supabase
@@ -106,7 +118,8 @@ export const TransactionsService = {
           store_id: transactionData.store_id,
           customer_id: transactionData.customer_id,
           employee_id: transactionData.employee_id,
-          sale_date: saleDate,
+          recipient: transactionData.recipient,
+          sale_date: dateToUse,
           status: transactionData.status,
           total_amount: transactionData.total_amount,
           description: transactionData.description || null,
@@ -212,19 +225,24 @@ export const TransactionsService = {
     }
   ) => {
     const supabase = createClient();
-
-    // 1. Filtrar los campos válidos para actualizar la transacción 
-    // (excluyendo productos que se manejan aparte)
+    
     const { products, ...transactionFields } = updatedData;
 
     try {
-      // Procesar la fecha si está presente para conservar la hora
+      // Procesar la fecha si está presente
       if (transactionFields.sale_date) {
-        const saleDate = transactionFields.sale_date.includes('T') 
-          ? transactionFields.sale_date 
-          : `${transactionFields.sale_date}T${new Date().toISOString().slice(11, 23)}`;
-        
-        transactionFields.sale_date = saleDate;
+        // Aseguramos que la fecha tenga formato completo
+        if (!transactionFields.sale_date.includes('T')) {
+          // Si solo tiene fecha sin hora, añadimos la hora actual
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const seconds = String(now.getSeconds()).padStart(2, '0');
+          transactionFields.sale_date = `${transactionFields.sale_date}T${hours}:${minutes}:${seconds}Z`;
+        }
+      } else {
+        // Si no hay fecha, usar la fecha actual local
+        transactionFields.sale_date = TransactionsService.getCurrentLocalTimestamp();
       }
 
       // Actualizar la transacción principal
@@ -361,4 +379,57 @@ export const TransactionsService = {
     };
     return statusMap[status];
   },
+
+  // Helper para convertir fechas de UTC a la zona horaria local
+  convertToLocalDate: (utcDateString: string): Date => {
+    if (!utcDateString) return new Date();
+    
+    try {
+      // Parseamos la fecha explícitamente sin ninguna conversión de zona horaria
+      const parsedDate = parseISO(utcDateString);
+      // Devolvemos la fecha en la zona horaria local
+      return parsedDate;
+    } catch (error) {
+      console.error("Error al convertir fecha:", error);
+      return new Date();
+    }
+  },
+
+  // Helper para formatear fechas en formato local
+  formatLocalDate: (utcDateString: string, formatStr: string = "dd/MM/yyyy HH:mm"): string => {
+    if (!utcDateString) return "N/A";
+    
+    try {
+      // Parsear la fecha ISO
+      const parsedDate = parseISO(utcDateString);
+      
+      // Formatear la fecha según el formato solicitado
+      return format(parsedDate, formatStr);
+    } catch (error) {
+      console.error("Error al formatear fecha:", error);
+      return "N/A";
+    }
+  },
+  
+  // Helper para obtener el timestamp actual en la zona horaria local del usuario
+  getCurrentLocalTimestamp: (): string => {
+    // Obtenemos la zona horaria del usuario
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Obtenemos la fecha actual
+    const now = new Date();
+    
+    // Formateamos la fecha en ISO pero manteniendo la zona horaria local
+    // Esto es crucial para evitar la conversión implícita a UTC que hace toISOString()
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
+    
+    // Formato: YYYY-MM-DDTHH:mm:ss.sssZ (formato ISO pero preservando hora local)
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
+  }
 }; 

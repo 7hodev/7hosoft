@@ -31,7 +31,6 @@ import { Product } from "@/lib/services/products.service";
 import { SoldProduct } from "@/lib/services/sold_products.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Toaster } from "@/components/ui/sonner";
 import { useModal } from "@/components/contexts/modal-context";
 import {
   Drawer,
@@ -44,13 +43,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Checkbox } from "@/components/ui/checkbox";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Trash2, ShoppingCart, CreditCard, Edit, X, Save, Info } from "lucide-react";
+import { Trash2, ShoppingCart, CreditCard, Edit, X, Save, Info, Plus } from "lucide-react";
 import { TransactionsService } from "@/lib/services/transactions.service";
 import { SoldProductsService } from "@/lib/services/sold_products.service";
 import { CustomersService } from "@/lib/services/customers.service";
 import { EmployeesService } from "@/lib/services/employees.service";
+import { CustomerCreateSheet } from "@/components/customer/customer-create-sheet";
 
 // Definir interfaces para los componentes personalizados
 interface TabsProps {
@@ -157,7 +157,7 @@ type SelectedProduct = Product & {
   originalQuantity: number;
 };
 
-interface TransactionsEditDialogProps {
+interface TransactionsEditSheetProps {
   transactionId: string | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -165,13 +165,13 @@ interface TransactionsEditDialogProps {
   children?: React.ReactNode;
 }
 
-export function TransactionsEditDialog({
+export function TransactionsEditSheet({
   transactionId,
   open,
   onOpenChange,
   onSuccess,
   children,
-}: TransactionsEditDialogProps) {
+}: TransactionsEditSheetProps) {
   const {
     selectedStore,
     customers,
@@ -202,9 +202,7 @@ export function TransactionsEditDialog({
   const [initialLoading, setInitialLoading] = useState(false);
   const [transactionType, setTransactionType] = useState<TransactionType>("income");
   const [transactionCategory, setTransactionCategory] = useState<TransactionCategory>("sales");
-  const [transactionDate, setTransactionDate] = useState<string>(
-    format(new Date(), "yyyy-MM-dd")
-  );
+  const [transactionDate, setTransactionDate] = useState<string>("");
   const [isDeductible, setIsDeductible] = useState<boolean>(false);
   const [expenseAmount, setExpenseAmount] = useState<string>("0");
 
@@ -272,7 +270,13 @@ export function TransactionsEditDialog({
           setTransactionCategory(transaction.category as TransactionCategory);
           setTransactionDescription(transaction.description || "");
           setSelectedStatus(transaction.status as TransactionStatus);
-          setTransactionDate(transaction.sale_date);
+          
+          // Formatear la fecha correctamente para el campo datetime-local
+          const date = transaction.sale_date ? 
+            format(parseISO(transaction.sale_date), "yyyy-MM-dd'T'HH:mm") : 
+            format(new Date(), "yyyy-MM-dd'T'HH:mm");
+          setTransactionDate(date);
+          
           setPaymentMethod(transaction.payment_method || "cash");
           setIsDeductible(!!transaction.deductible);
           
@@ -434,6 +438,17 @@ export function TransactionsEditDialog({
   }, [formData.employee_id, employees]);
 
   const handleQuantityChange = (productId: string, value: string) => {
+    // Permitir que sea una cadena vacía
+    if (value === "") {
+      setSelectedProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, quantity: 0 } : p
+        )
+      );
+      return;
+    }
+    
+    // Convertir a número
     const numericValue = parseInt(value) || 0;
     
     setSelectedProducts((prev) =>
@@ -471,7 +486,7 @@ export function TransactionsEditDialog({
       }
 
       if ((transactionType === "expense" || (transactionType === "income" && transactionCategory !== "sales")) && parseFloat(expenseAmount) <= 0) {
-        const errorMsg = "El monto debe ser mayor a cero";
+        const errorMsg = "El monto total debe ser mayor a cero";
         setError(errorMsg);
         toast.error(errorMsg);
         return;
@@ -678,11 +693,7 @@ export function TransactionsEditDialog({
                     value={product.quantity}
                     onChange={(e) => {
                       const newValue = parseInt(e.target.value) || 1;
-                      setSelectedProducts(prev => 
-                        prev.map((p, i) => 
-                          i === index ? { ...p, quantity: newValue } : p
-                        )
-                      );
+                      handleQuantityChange(product.id, newValue.toString());
                     }}
                     className="w-20 h-8"
                   />
@@ -848,33 +859,40 @@ export function TransactionsEditDialog({
             {/* Cliente y Empleado - Solo para ingresos */}
             {transactionType === "income" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2 mb-4">
                   <Label htmlFor="customer">Cliente</Label>
-                  <Select
-                    value={formData.customer_id}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, customer_id: value });
-                    }}
-                  >
-                    <SelectTrigger id="customer">
-                      <SelectValue placeholder={customerDisplayName} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {customers.length > 0 ? (
-                          customers.map((customer) => (
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Select
+                        value={formData.customer_id}
+                        onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                      >
+                        <SelectTrigger id="customer">
+                          <SelectValue placeholder={customerDisplayName} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customers.map((customer) => (
                             <SelectItem key={customer.id} value={customer.id}>
                               {customer.name}
                             </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-customers" disabled>
-                            No hay clientes disponibles
-                          </SelectItem>
-                        )}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <CustomerCreateSheet
+                      onSuccess={() => refreshData()}
+                    >
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-10 w-10"
+                        title="Crear nuevo cliente"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </CustomerCreateSheet>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="employee">Empleado</Label>
@@ -939,6 +957,27 @@ export function TransactionsEditDialog({
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Campo de monto total para transacciones que no sean ventas */}
+            {(transactionType === "expense" || (transactionType === "income" && transactionCategory !== "sales")) && (
+              <div>
+                <Label htmlFor="total-amount">Monto total</Label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="total-amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={expenseAmount}
+                    onChange={(e) => setExpenseAmount(e.target.value)}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+            )}
             
             {/* Descripción */}
             <div>
@@ -1027,7 +1066,6 @@ export function TransactionsEditDialog({
           </SheetFooter>
         </SheetContent>
       </Sheet>
-      <Toaster />
     </>
   );
 }

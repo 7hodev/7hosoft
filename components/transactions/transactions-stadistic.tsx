@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/format";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { endOfDay, startOfDay, startOfMonth, endOfMonth, subMonths, subDays, subYears, startOfYear, endOfYear } from "date-fns";
+import { endOfDay, startOfDay, startOfMonth, endOfMonth, subMonths, subDays, subYears, startOfYear, endOfYear, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 
-type PeriodType = "daily" | "monthly" | "quarterly" | "annual";
+type PeriodType = "daily" | "weekly" | "monthly" | "annual";
 
 export default function TransactionsStatistic() {
   const { transactions, user } = useDb();
-  const [activePeriod, setActivePeriod] = useState<PeriodType>("monthly");
+  const [activePeriod, setActivePeriod] = useState<PeriodType>("weekly");
   const [statistics, setStatistics] = useState({
     income: { amount: 0, count: 0, percentage: 0 },
     expense: { amount: 0, count: 0, percentage: 0 },
@@ -36,34 +36,22 @@ export default function TransactionsStatistic() {
 
     switch (activePeriod) {
       case "daily":
-        currentPeriodStart = startOfDay(now);
-        previousPeriodStart = startOfDay(subDays(now, 1));
-        previousPeriodEnd = endOfDay(subDays(now, 1));
+        // Asegurarnos que el período diario cubra todo el día actual sin importar la hora
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        currentPeriodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        previousPeriodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+        previousPeriodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        break;
+      case "weekly":
+        currentPeriodStart = startOfWeek(now, { weekStartsOn: 1 }); // Semana inicia lunes
+        currentPeriodEnd = endOfWeek(now, { weekStartsOn: 1 });
+        previousPeriodStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+        previousPeriodEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
         break;
       case "monthly":
         currentPeriodStart = startOfMonth(now);
         previousPeriodStart = startOfMonth(subMonths(now, 1));
         previousPeriodEnd = endOfMonth(subMonths(now, 1));
-        break;
-      case "quarterly":
-        // Trimestre actual
-        const currentQuarter = Math.floor(now.getMonth() / 3);
-        currentPeriodStart = new Date(now.getFullYear(), currentQuarter * 3, 1);
-        
-        // Trimestre anterior
-        const prevQuarterMonth = currentQuarter > 0 
-          ? (currentQuarter - 1) * 3 
-          : 9; // Si estamos en el primer trimestre, el anterior es el cuarto del año pasado
-        const prevQuarterYear = currentQuarter > 0 
-          ? now.getFullYear() 
-          : now.getFullYear() - 1;
-        
-        previousPeriodStart = new Date(prevQuarterYear, prevQuarterMonth, 1);
-        previousPeriodEnd = new Date(
-          prevQuarterMonth + 3 > 11 ? prevQuarterYear + 1 : prevQuarterYear,
-          (prevQuarterMonth + 3) % 12,
-          0
-        );
         break;
       case "annual":
         currentPeriodStart = startOfYear(now);
@@ -77,7 +65,10 @@ export default function TransactionsStatistic() {
     let incomeAmount = 0, expenseAmount = 0, deductibleExpenses = 0;
     
     // Variables para los cálculos del período anterior (para porcentajes)
-    let previousIncomeCount = 0, previousExpenseCount = 0;
+    let previousIncomeAmount = 0, previousExpenseAmount = 0;
+    
+    // Variables para cálculos mensuales (para ITBMS fijo)
+    let monthlyIncomeAmount = 0;
     
     // Variables para cálculos anuales (para impuestos)
     let annualIncome = 0;
@@ -87,8 +78,7 @@ export default function TransactionsStatistic() {
     console.log("CONFIGURACIONES:", user?.settings);
     console.log("TIPO DE PERSONA (original):", user?.settings?.person_type);
 
-    // Antes de definir las funciones, calcular totalTaxesExpenses
-    // Gasto total en impuestos (categoría "taxes")
+    // Calcular gastos en impuestos para el año fiscal actual
     let totalTaxesExpenses = 0;
     transactions.forEach(transaction => {
       if (transaction.type === 'expense' && transaction.category === 'taxes') {
@@ -109,27 +99,128 @@ export default function TransactionsStatistic() {
       return Number(((current - previous) / previous * 100).toFixed(1));
     };
 
-    // Simplificar DRÁSTICAMENTE la detección del person_type y el cálculo del ISR
-    // Detectar person_type correctamente
-    const getPersonType = () => {
-      // Ver la imagen proporcionada por el usuario, para id:1 el person_type es "corporate"
-      const userId = user?.id;
-      console.log("ID DEL USUARIO ACTUAL:", userId);
+    // Verificar los períodos de tiempo para depuración
+    console.log("Período actual:", { 
+      start: currentPeriodStart.toISOString(), 
+      end: currentPeriodEnd.toISOString(),
+      tipoActivoPeriodo: activePeriod
+    });
+
+    // Función para extraer solo la parte de fecha YYYY-MM-DD de una fecha
+    const getDateString = (date: Date) => {
+      return date.toISOString().split('T')[0]; // Obtiene YYYY-MM-DD
+    };
+
+    // Fecha de hoy en formato YYYY-MM-DD para comparaciones más simples
+    const todayDateString = getDateString(now);
+    const yesterdayDateString = getDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+
+    console.log(`Fecha actual para comparación: ${todayDateString}, ayer: ${yesterdayDateString}`);
+
+    // Obtener el primer día del mes actual para el cálculo de ITBMS fijo
+    const currentMonthStart = startOfMonth(now);
+    const currentMonthEnd = endOfMonth(now);
+
+    // Procesar transacciones primero para obtener los totales correctos
+    for (const transaction of transactions) {
+      // Obtener la fecha de la transacción en UTC sin ajustes de zona horaria
+      const transactionDateStr = transaction.sale_date;
+      const transactionDate = new Date(transactionDateStr);
+      const transactionDateString = getDateString(transactionDate);
       
-      // CASO ESPECIAL: Si es ID:1, siempre es corporate
-      if (userId === 1 || userId === "1") {
-        console.log("🔎 USANDO CORPORATE PARA USUARIO ID 1 (FORZADO)");
-        return "corporate";
+      // Determinar si la transacción está en el período actual o anterior
+      let isInCurrentPeriod = false;
+      let isInPreviousPeriod = false;
+      let isInCurrentMonth = false;
+      
+      if (activePeriod === "daily") {
+        // Para período diario, comparamos simplemente los strings de fecha YYYY-MM-DD
+        isInCurrentPeriod = transactionDateString === todayDateString;
+        isInPreviousPeriod = transactionDateString === yesterdayDateString;
+      } else {
+        // Para otros períodos usamos la comparación normal
+        isInCurrentPeriod = transactionDate >= currentPeriodStart && transactionDate <= currentPeriodEnd;
+        isInPreviousPeriod = transactionDate >= previousPeriodStart && transactionDate <= previousPeriodEnd;
       }
       
-      // Verificamos settings
+      // Verificar si está en el mes actual (para ITBMS fijo)
+      isInCurrentMonth = transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
+      
+      // Registrar información detallada para depurar
+      console.log(`Transacción ID ${transaction.id}:
+        - Fecha original (UTC): ${transactionDateStr}
+        - Fecha normalizada: ${transactionDateString}
+        - Fecha actual: ${todayDateString}
+        - ¿En período actual?: ${isInCurrentPeriod}
+        - Método: ${activePeriod === "daily" ? "comparación de strings" : "comparación de objetos Date"}`);
+      
+      const amount = Number(transaction.total_amount) || 0;
+      
+      // Si es el período actual
+      if (isInCurrentPeriod) {
+        console.log(`✅ Transacción ${transaction.id} INCLUIDA en las estadísticas del día`);
+        if (transaction.type === 'income') {
+          incomeCount++;
+          incomeAmount += amount;
+          console.log("Sumando ingreso:", { incomeCount, incomeAmount });
+        } else if (transaction.type === 'expense') {
+          expenseCount++;
+          expenseAmount += amount;
+          console.log("Sumando gasto:", { expenseCount, expenseAmount });
+          
+          // Si es deducible, sumarlo a gastos deducibles del período actual
+          if (transaction.deductible) {
+            deductibleExpenses += amount;
+          }
+        }
+      } else {
+        console.log(`❌ Transacción ${transaction.id} NO incluida en estadísticas del día`);
+      }
+      
+      // Si es el período anterior (para comparación)
+      if (isInPreviousPeriod) {
+        if (transaction.type === 'income') {
+          previousIncomeAmount += amount;
+        } else if (transaction.type === 'expense') {
+          previousExpenseAmount += amount;
+        }
+      }
+      
+      // Si está en el mes actual (para ITBMS fijo)
+      if (isInCurrentMonth && transaction.type === 'income') {
+        monthlyIncomeAmount += amount;
+      }
+      
+      // Cálculos para el año fiscal actual (para ISR)
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      const yearEnd = new Date(now.getFullYear(), 11, 31);
+      
+      if (transactionDate >= yearStart && transactionDate <= yearEnd) {
+        if (transaction.type === 'income') {
+          annualIncome += amount;
+        } else if (transaction.type === 'expense' && transaction.deductible) {
+          annualDeductibleExpenses += amount;
+        }
+      }
+    }
+
+    // Calcular balance
+    const balanceAmount = incomeAmount - expenseAmount;
+    const previousBalanceAmount = previousIncomeAmount - previousExpenseAmount;
+    
+    // Calcular ITBMS (7% sobre ingresos mensuales) - siempre usando el ingreso mensual
+    const itbmsAmount = monthlyIncomeAmount * 0.07;
+    
+    // AHORA sí calculamos el ISR con los valores correctos
+    
+    // Detectar el tipo de persona
+    const getPersonType = () => {
+      // Verificamos settings del usuario
       const personTypeFromSettings = user?.settings?.person_type;
       console.log("🔎 PERSON_TYPE DIRECTO DE SETTINGS:", personTypeFromSettings);
       
-      // Si hay un tipo explícito, usarlo
       if (typeof personTypeFromSettings === "string") {
         const normalizedType = personTypeFromSettings.toLowerCase().trim();
-        
         if (normalizedType === "corporate") {
           console.log("🔎 DETECTADO PERSON_TYPE=corporate EN SETTINGS");
           return "corporate";
@@ -141,14 +232,15 @@ export default function TransactionsStatistic() {
       return "individual";
     };
 
-    // Calcular ISR de manera sencilla
+    // Calcular ISR basado en el tipo de persona
     const calculateIsr = (annualIncome: number, annualDeductibleExpenses: number, personType: string) => {
       console.log("🔎 CÁLCULO DE ISR:");
       console.log("🔎 - INGRESOS ANUALES:", annualIncome);
       console.log("🔎 - GASTOS DEDUCIBLES:", annualDeductibleExpenses);
       console.log("🔎 - TIPO DE PERSONA:", personType);
       
-      const baseImponible = annualIncome - annualDeductibleExpenses;
+      // Base imponible = ingresos anuales - gastos deducibles
+      const baseImponible = Math.max(0, annualIncome - annualDeductibleExpenses);
       console.log("🔎 - BASE IMPONIBLE:", baseImponible);
       
       let isrAmount = 0;
@@ -176,96 +268,41 @@ export default function TransactionsStatistic() {
       return isrAmount;
     };
 
-    // Usar durante el efecto para calcular el ISR correctamente
-    // Reemplazar la sección del cálculo del ISR con este código
+    // Obtener el tipo de persona y calcular el ISR
     const personType = getPersonType();
     console.log("🔎 TIPO DE PERSONA FINAL:", personType);
-
-    // Cálculo del ISR utilizando la función
+    
+    // Cálculo del ISR con los valores actualizados
     const isrAmount = calculateIsr(annualIncome, annualDeductibleExpenses, personType);
     console.log("🔎 ISR CALCULADO FINAL:", isrAmount);
 
-    // ISR a pagar = ISR calculado - gastos en impuestos
+    // ISR a pagar = ISR calculado - gastos en impuestos ya pagados
     const isrToPay = Math.max(0, isrAmount - totalTaxesExpenses);
     console.log("🔎 GASTOS EN IMPUESTOS DEDUCIBLES:", totalTaxesExpenses);
     console.log("🔎 ISR A PAGAR FINAL:", isrToPay);
-
-    // Procesar transacciones
-    for (const transaction of transactions) {
-      const transactionDate = new Date(transaction.sale_date);
-      const amount = Number(transaction.total_amount) || 0;
-      
-      // Si es el período actual
-      if (transactionDate >= currentPeriodStart && transactionDate <= currentPeriodEnd) {
-        if (transaction.type === 'income') {
-          incomeCount++;
-          incomeAmount += amount;
-        } else if (transaction.type === 'expense') {
-          expenseCount++;
-          expenseAmount += amount;
-          
-          // Si es deducible, sumarlo a gastos deducibles
-          if (transaction.deductible) {
-            deductibleExpenses += amount;
-          }
-        }
-      }
-      
-      // Si es el período anterior (para comparación)
-      else if (transactionDate >= previousPeriodStart && transactionDate <= previousPeriodEnd) {
-        if (transaction.type === 'income') {
-          previousIncomeCount++;
-        } else if (transaction.type === 'expense') {
-          previousExpenseCount++;
-        }
-      }
-      
-      // Cálculos para el año fiscal actual (para ISR)
-      const yearStart = new Date(now.getFullYear(), 0, 1);
-      const yearEnd = new Date(now.getFullYear(), 11, 31);
-      
-      if (transactionDate >= yearStart && transactionDate <= yearEnd) {
-        if (transaction.type === 'income') {
-          annualIncome += amount;
-        } else if (transaction.type === 'expense' && transaction.deductible) {
-          annualDeductibleExpenses += amount;
-        }
-      }
-    }
-
-    // Calcular balance
-    const balanceAmount = incomeAmount - expenseAmount;
     
-    // Calcular ITBMS (7% sobre ingresos mensuales)
-    const itbmsAmount = incomeAmount * 0.07;
-    
-    // Base imponible = ingresos anuales - gastos deducibles
-    const baseImponible = annualIncome - annualDeductibleExpenses;
-    console.log("Base imponible calculada:", baseImponible);
-    console.log("Ingresos anuales:", annualIncome);
-    console.log("Gastos deducibles anuales:", annualDeductibleExpenses);
-    
+    // Actualizar estadísticas
     setStatistics({
       income: {
         amount: incomeAmount,
         count: incomeCount,
-        percentage: calculatePercentage(incomeCount, previousIncomeCount)
+        percentage: calculatePercentage(incomeAmount, previousIncomeAmount)
       },
       expense: {
         amount: expenseAmount,
         count: expenseCount,
-        percentage: calculatePercentage(expenseCount, previousExpenseCount)
+        percentage: calculatePercentage(expenseAmount, previousExpenseAmount)
       },
       balance: {
         amount: balanceAmount,
-        percentage: expenseAmount > 0 ? Number(((balanceAmount / expenseAmount) * 100).toFixed(1)) : 0
+        percentage: calculatePercentage(balanceAmount, previousBalanceAmount)
       },
       taxes: {
-        itbms: itbmsAmount,
+        itbms: itbmsAmount, // Siempre muestra el ITBMS mensual
         isr: isrToPay
       },
       annualIncome,
-      deductibleExpenses,
+      deductibleExpenses, // Ahora esta variable contiene los gastos deducibles del período actual
       showIsr: statistics.showIsr,
       showDeductibles: statistics.showDeductibles,
     });
@@ -288,10 +325,10 @@ export default function TransactionsStatistic() {
     switch (activePeriod) {
       case "daily":
         return "diarios";
+      case "weekly":
+        return "semanales";
       case "monthly":
         return "mensuales";
-      case "quarterly":
-        return "trimestrales";
       case "annual":
         return "anuales";
       default:
@@ -325,18 +362,18 @@ export default function TransactionsStatistic() {
             Diario
           </Button>
           <Button 
+            variant={activePeriod === "weekly" ? "default" : "ghost"} 
+            className="text-xs px-3"
+            onClick={() => setActivePeriod("weekly")}
+          >
+            Semanal
+          </Button>
+          <Button 
             variant={activePeriod === "monthly" ? "default" : "ghost"} 
             className="text-xs px-3"
             onClick={() => setActivePeriod("monthly")}
           >
             Mensual
-          </Button>
-          <Button 
-            variant={activePeriod === "quarterly" ? "default" : "ghost"} 
-            className="text-xs px-3"
-            onClick={() => setActivePeriod("quarterly")}
-          >
-            Trimestral
           </Button>
           <Button 
             variant={activePeriod === "annual" ? "default" : "ghost"} 
@@ -379,11 +416,9 @@ export default function TransactionsStatistic() {
               <span className="text-sm text-muted-foreground">
                 {statistics.showDeductibles ? "Gastos deducibles" : `${statistics.expense.count} transacciones`}
               </span>
-              {!statistics.showDeductibles && (
-                <span className={`text-sm ${getPercentageColor(statistics.expense.percentage)}`}>
-                  {formatPercentageText(statistics.expense.percentage)}
-                </span>
-              )}
+              <span className={`text-sm ${getPercentageColor(statistics.expense.percentage)}`}>
+                {formatPercentageText(statistics.expense.percentage)}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -398,8 +433,8 @@ export default function TransactionsStatistic() {
               <span className="text-sm text-muted-foreground">
                 Ingresos - Gastos
               </span>
-              <span className={`text-sm ${statistics.balance.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {statistics.balance.amount >= 0 ? "Ganancia" : "Pérdida"}
+              <span className={`text-sm ${getPercentageColor(statistics.balance.percentage)}`}>
+                {formatPercentageText(statistics.balance.percentage)}
               </span>
             </div>
           </CardContent>
@@ -408,7 +443,7 @@ export default function TransactionsStatistic() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {statistics.showIsr ? "ISR por Pagar (Anual)" : "ITBMS por Pagar"}
+              {statistics.showIsr ? "ISR por Pagar (Anual)" : "ITBMS por Pagar (Mensual)"}
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={toggleTaxView} className="h-6 px-2 text-xs">
               {statistics.showIsr ? "Ver ITBMS" : "Ver ISR"}

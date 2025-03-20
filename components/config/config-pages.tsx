@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { signOutAction } from "@/app/actions";
